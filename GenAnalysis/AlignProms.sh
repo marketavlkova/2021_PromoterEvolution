@@ -12,14 +12,14 @@ do
 done
 
 ### delete file with average pairwise identities if it already exists
-if [ -f "output/Identities-$3.txt" ]
+if [ -f "output/PromIdentities.txt" ]
 then
-  rm output/Identities-$3.txt
+  rm output/PromIdentities.txt
 fi
 
 ### calculate average pairwise identities for aligned sequences
-echo "Calculating identities for aligned sequences"
+echo "Calculating identities for aligned promoters"
 for align in $2*$3*.aln
 do
   t_coffee -other_pg seq_reformat -in $align -output sim 2> /dev/null
-done >> output/Identities-$3.txt
+done >> output/IdentitiesProms.txt

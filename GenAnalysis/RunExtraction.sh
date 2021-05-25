@@ -27,10 +27,9 @@ python3 GetPromRefs.py output/RDBex.csv input/MG1655_genome.gb Strong
 python3 GetGeneRefs.py output/RDBex.csv input/MG1655_genome.gb Strong
 
 ### STEP 3:
-### remove duplicated sequences in reference (due to multiple TSSs)
+### remove duplicated promoters and genes in reference
 printf "Removing duplications\n"
-./DuplRemoval.R output/*ExtFlanks.fasta output/ExtFlanks_refs.fasta
-./DuplRemoval.R output/*ExtIGRs.fasta output/ExtIGRs_refs.fasta
+./DuplRemoval.R output/*ExtProms.fasta output/Proms_refs.fasta
 ./DuplRemoval.R output/*genes.fasta output/Genes_refs.fasta
 
 ### STEP 4:
@@ -47,34 +46,24 @@ else
   MAKEDB="No"
 fi
 ### create output directory for blast results
-if [ ! -d "./output/blast_results_IGRs" ]
+if [ ! -d "./output/blast_results_promoters" ]
 then
-  mkdir output/blast_results_IGRs
-fi
-if [ ! -d "./output/blast_results_flanks" ]
-then
-  mkdir output/blast_results_flanks
+  mkdir output/blast_results_promoters
 fi
 if [ ! -d "./output/blast_results_genes" ]
 then
   mkdir output/blast_results_genes
 fi
 ### blast for homologous sequences among environmental isolates
-./Blast.sh $MAKEDB ./output/ExtFlanks_refs.fasta output/blast_results_flanks/
-./Blast.sh No ./output/ExtIGRs_refs.fasta output/blast_results_IGRs/
+./Blast.sh $MAKEDB ./output/Proms_refs.fasta output/blast_results_promoters/
 ./Blast.sh No ./output/Genes_refs.fasta output/blast_results_genes/
 
 ### STEP 5:
 ### create output directories for sequences found in environmental isolates
-if [ ! -d "./output/blasted_IGRs" ]
+if [ ! -d "./output/blasted_promoters" ]
 then
-  mkdir output/blasted_IGRs
-  mkdir output/blasted_IGRs/by_promoter
-fi
-if [ ! -d "./output/blasted_flanks" ]
-then
-  mkdir output/blasted_flanks
-  mkdir output/blasted_flanks/by_promoter
+  mkdir output/blasted_promoters
+  mkdir output/blasted_promoters/by_promoter
 fi
 if [ ! -d "./output/blasted_genes" ]
 then
@@ -82,22 +71,16 @@ then
   mkdir output/blasted_genes/by_promoter
 fi
 ### extract blasted sequences from environmental strains
-printf "\nAnalysing blast flank hits that are at most 100nt shorter than MG1655 reference"
-python3 GetBlasted.py output/ExtFlanks_refs.fasta output/blast_results_flanks/ input/genomes/ output/blasted_flanks/ 100
-printf "\nAnalysing blast IGR hits that are at most 5nt shorter than MG1655 reference"
-python3 GetBlasted.py output/ExtIGRs_refs.fasta output/blast_results_IGRs/ input/genomes/ output/blasted_IGRs/ 5
+printf "\nAnalysing blast promoter hits that are at most 100nt shorter than MG1655 reference"
+python3 GetBlasted.py output/Proms_refs.fasta output/blast_results_promoters/ input/genomes/ output/blasted_promoters/ 100
 printf "\nAnalysing blast gene hits that are at most 100nt shorter than MG1655 reference"
 python3 GetBlasted.py output/Genes_refs.fasta output/blast_results_genes/ input/genomes/ output/blasted_genes/ 100
 
 ### STEP 6:
 ### create output directory for alignments
-if [ ! -d "./output/flanks" ]
+if [ ! -d "./output/promoters" ]
 then
-  mkdir output/flanks
-fi
-if [ ! -d "./output/IGRs" ]
-then
-  mkdir output/IGRs
+  mkdir output/promoters
 fi
 if [ ! -d "./output/genes" ]
 then
@@ -105,44 +88,41 @@ then
 fi
 ### align homologous sequences and calculate sequence identities
 printf "\nAligning:\n"
-printf "\tflank hits\n"
-./AlignProms.sh output/blasted_flanks/by_promoter/ output/flanks/ 100
-printf "\tIGR hits\n"
-./AlignProms.sh output/blasted_IGRs/by_promoter/ output/IGRs/ 5
+printf "\tpromoter hits\n"
+./AlignProms.sh output/blasted_promoters/by_promoter/ output/promoters/ 100
 printf "\tgene hits\n"
 ./AlignGenes.sh output/blasted_genes/by_promoter/
 ### extract total identity values for each alignment in a separated file (average pairwise identity)
 printf "Extracting total identity values from:\n"
-printf "flanks\n"
-./APIextract.awk output/Identities-100.txt > output/APIprom-100.csv
-printf "IGRs\n"
-./APIextract.awk output/Identities-5.txt > output/APIprom-5.csv
-printf "genes\n"
-./APIextract.awk output/GeneIdentities.txt > output/APIgene.csv
-### get files of aligned promoters having each sequence on one line only in txt files
-### (these txt files are used to calculate number of sequence versions among all strains later)
-for file in output/flanks/*.aln
-do
-  OUT="${file%.aln}.txt"
-  ./JoinLines.awk $file > $OUT
-done
-for file in output/IGRs/*.aln
-do
-  OUT="${file%.aln}.txt"
-  ./JoinLines.awk $file > $OUT
-done
-for file in output/genes/*.aln
-do
-  OUT="${file%.aln}.txt"
-  ./JoinLines.awk $file > $OUT
-done
+printf "\tpromoters\n"
+./APIextract.awk output/IdentitiesProms.txt > output/APIprom.csv
+printf "\tgenes\n"
+./APIextract.awk output/IdentitiesGenes.txt > output/APIgene.csv
 
 ### STEP 7:
+### create output directory for IGR alignments
+if [ ! -d "./output/IGRs" ]
+then
+  mkdir output/IGRs
+fi
+### generate IGR alignments from promoter alignments (IGR + flanks)
+python3 IGRextract.py output/promoters/ output/IGRs/
+### extract total identity values for IGR alignments (average pairwise identity)
+echo "Calculating identities for aligned IGRs"
+for align in output/IGRs/*.aln
+do
+  t_coffee -other_pg seq_reformat -in $align -output sim 2> /dev/null
+done >> output/IdentitiesIGRs.txt
+printf "Extracting total identity values from:\n"
+printf "\tIGRs\n"
+./APIextract.awk output/IdentitiesIGRs.txt > output/APIigr.csv
+
+### STEP 8:
 ### calculate number of segregating sites for each sequence alignment
 printf "Pulling out information about segregating sites from:\n"
-printf "flanks\n"
-python3 SegSitesProms.py output/flanks/ 100
-printf "IGRs\n"
-python3 SegSitesProms.py output/IGRs/ 5
-printf "genes\n"
-python3 SegSitesGenes.py output/genes/
+printf "\tpromoters\n"
+python3 SegSites.py output/promoters/ output/SegSitesProms.csv
+printf "\tIGRs\n"
+python3 SegSites.py output/IGRs/ output/SegSitesIGRs.csv
+printf "\tgenes\n"
+python3 SegSites.py output/genes/ output/SegSitesGenes.csv

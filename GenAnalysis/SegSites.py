@@ -1,6 +1,6 @@
 ### Script which counts number of segregation sites for each intergenic / promoter region
 ### Note: This script isn't optimized to work on MacOS
-### example to run: python3 SegSitesProms.py <path to dir with .aln files>
+### example to run: python3 SegSitesProms.py <path to dir with .aln files> <output file>
 
 import sys
 import glob
@@ -11,13 +11,13 @@ def main():
 
     ### save arguments
     in_dir = sys.argv[1]
-    diff = sys.argv[2]
+    out = sys.argv[2]
 
     ### read all files with blast results
-    in_files = glob.glob(in_dir + '*' + diff + '*.aln')
+    in_files = glob.glob(in_dir + '*.aln')
 
     ### set output file
-    out_file = open('output/' + 'SegSitesProms_-{}included.csv'.format(diff), 'w')
+    out_file = open(out, 'w')
     out_file.write('Promoter,#SegSites,#Strains,AlignLength\n')
 
     ### loop through all input files

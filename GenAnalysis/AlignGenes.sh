@@ -18,8 +18,8 @@ then
 fi
 
 ### calculate average pairwise identities for aligned sequences
-echo "Calculating identities for aligned sequences"
+echo "Calculating identities for aligned genes"
 for align in output/genes/*.aln
 do
   t_coffee -other_pg seq_reformat -in $align -output sim 2> /dev/null
-done >> output/GeneIdentities.txt
+done >> output/IdentitiesGenes.txt

@@ -34,8 +34,7 @@ def main():
     db_name = reg_db.split("/")[1].split(".")[0]
     feats_out = open('output/' + '{}_{}_PromAnnots.csv'.format(db_name, confidence), 'w')
     int_regs_out = open('output/' + '{}_{}_IGRs.csv'.format(db_name, confidence), 'w')
-    int_reg_seqs_out = open('output/' + '{}_{}_ExtIGRs.fasta'.format(db_name, confidence), 'w')
-    flank_seqs_out = open('output/' + '{}_{}_ExtFlanks.fasta'.format(db_name, confidence), 'w')
+    int_reg_seqs_out = open('output/' + '{}_{}_ExtProms.fasta'.format(db_name, confidence), 'w')
 
     ### load MG1655 reference genome
     for genome_k12 in SeqIO.parse(reference, "genbank"):
@@ -191,28 +190,21 @@ def main():
         down = int_regs[key][0]
         up = int_regs[key][1]
         strand = int_regs[key][2]
-        flank_seqs_out.write(">" + genome_k12.id + "_" + reference.split("/")[1].split(".")[0] + "_" + key + "_" + strand + "\n")
         int_reg_seqs_out.write(">" + genome_k12.id + "_" + reference.split("/")[1].split(".")[0] + "_" + key + "_" + strand + "\n")
         ### correction for sequences spanning through ori in circular chromosome
         if abs(down-up) > 3000:
             if down < up:
-                flank_seqs_out.write("%s" % genome_k12.seq[up-100:len(genome_k12.seq)+1])
-                flank_seqs_out.write("%s\n" % genome_k12.seq[0:down+101])
-                int_reg_seqs_out.write("%s" % genome_k12.seq[up:len(genome_k12.seq)+1])
-                int_reg_seqs_out.write("%s\n" % genome_k12.seq[0:down+1])
+                int_reg_seqs_out.write("%s" % genome_k12.seq[up-100:len(genome_k12.seq)+1])
+                int_reg_seqs_out.write("%s\n" % genome_k12.seq[0:down+101])
             else:
-                flank_seqs_out.write("%s" % genome_k12.seq[down-100:len(genome_k12.seq)+1])
-                flank_seqs_out.write("%s\n" % genome_k12.seq[0:up+101])
-                int_reg_seqs_out.write("%s" % genome_k12.seq[down:len(genome_k12.seq)+1])
-                int_reg_seqs_out.write("%s\n" % genome_k12.seq[0:up+1])
+                int_reg_seqs_out.write("%s" % genome_k12.seq[down-100:len(genome_k12.seq)+1])
+                int_reg_seqs_out.write("%s\n" % genome_k12.seq[0:up+101])
         ### all other sequences
         else:
             if down < up:
-                flank_seqs_out.write("%s\n" % genome_k12.seq[down-100:up+101])
-                int_reg_seqs_out.write("%s\n" % genome_k12.seq[down:up+1])
+                int_reg_seqs_out.write("%s\n" % genome_k12.seq[down-100:up+101])
             else:
-                flank_seqs_out.write("%s\n" % genome_k12.seq[up-100:down+101])
-                int_reg_seqs_out.write("%s\n" % genome_k12.seq[up:down+1])
+                int_reg_seqs_out.write("%s\n" % genome_k12.seq[up-100:down+101])
 
 if __name__ == '__main__':
     main()

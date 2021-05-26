@@ -1,0 +1,8 @@
+"Ontology - parents of class from Ontology - parents of class from Ontology - parents of class from Ontology - parents of class from "	"Matches"
+DNA-Segments	All-Genes
+All-Genes	Genes
+Genes	MultiFun
+MultiFun	BC-4 // BC-3 // BC-1
+Polymer-Segments	DNA-Segments
+BC-3	BC-3.1
+BC-4	BC-4.3

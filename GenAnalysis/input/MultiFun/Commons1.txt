@@ -1,0 +1,40 @@
+Ontology - parents of class from Ontology - parents of class from Gene names from PromSEX project imported from AllGenes.csv file	Matches
+adaptations	"temperature extremes // ""starvation"" // ""pH"" // ""other (mechanical, nutritional, oxidative stress)"" // ""osmotic pressure"" // ""Fe aquisition"" // ""dessication"""
+amino acids	"tyrosine // ""tryptophan"" // ""serine"" // ""phenylalanine"" // ""methionine"" // ""lysine"" // ""leucine"" // ""isoleucine/valine"" // ""histidine"" // ""glycine"" // ""glutamine"" // ""glutamate"" // ""cysteine"" // ""chorismate"" // ""asparagine"" // ""arginine"""
+biosynthesis of building blocks	fatty acids and phosphatidic acid
+biosynthesis of macromolecules (cellular constituents)	"phospholipid // ""osmoregulated periplasmic glucan"" // ""murein (peptidoglycan)"" // ""lipopolysaccharide"" // ""K antigen"" // ""glycoprotein"" // ""flagellum"" // ""cytoplasmic polysaccharides"" // ""colanic acid (M antigen)"""
+carbon utilization	"fatty acids // ""carbon compounds"" // ""amino acids"" // ""amines"""
+cell processes	"SOS response // ""protection"" // ""motility, chemotaxis, energytaxis (aerotaxis, redoxtaxis etc)"" // ""defense/survival"" // ""cell division"" // ""adaptations"""
+cell structure	"surface antigens (ECA, O antigen of LPS) // ""ribosomes"" // ""pilus"" // ""murein"" // ""membrane"" // ""flagella"" // ""capsule (M and K antigens)"""
+central intermediary metabolism	"unassigned reversible reactions // ""threonine catabolism"" // ""sugar nucleotide biosynthesis, conversions"" // ""pyruvate oxidation"" // ""polyamine biosynthesis"" // ""nucleotide and nucleoside conversions"" // ""murein turnover, recycling"" // ""misc. glycerol metabolism"" // ""misc. glucose metabolism"" // ""methylglyoxal metabolism"" // ""incorporation of metal ions"" // ""glyoxylate degradation"" // ""glyoxylate bypass"" // ""glycolate metabolism"" // ""galactose metabolism"" // ""formyl-THF biosynthesis"" // ""amino sugar conversions"" // ""amino acid conversion"" // ""acetate catabolism"" // ""2'-deoxyribonucleotide metabolism"""
+Channel-type Transporters	"Beta barrel porins (The Outer Membrane Porin (OMP) Functional Superfamily) // ""alpha-type channels"""
+"cofactors, small molecule carriers"	"riboflavin // ""pyridoxal 5'phosphate"" // ""nicotinamide adenine dinucleotide"" // ""molybdenum"" // ""menaquinone, ubiquinone"" // ""heme, porphyrine"" // ""folic acid"" // ""Coenzyme A and its modification"""
+complex regulation	two component regulatory systems (external signal)
+degradation of macromolecules	"RNA // ""proteins/peptides/glycopeptides"" // ""polysaccharides"" // ""DNA"""
+DNA related	"DNA replication // ""DNA repair"" // ""DNA recombination"" // ""DNA degradation"""
+DNA structure level	methylation
+Electrochemical potential driven transporters	"Porters (Uni-, Sym- and Antiporters) // ""Ion-gradient-driven energizers"""
+"energy metabolism, carbon"	"TCA cycle // ""pyruvate dehydrogenase"" // ""pentose pwy, oxidative branch"" // ""glycolysis"" // ""fermentation"" // ""Entner-Doudoroff"" // ""ATP proton motive force interconversion"" // ""anaerobic respiration"" // ""aerobic respiration"""
+energy production/transport	"electron donors // ""electron carriers"" // ""electron acceptors"""
+extrachromosomal	"transposon related // ""prophage genes and phage related functions"" // ""plasmid related"" // ""colicin related"""
+|Genes|	UNCLASSIFIED // |ORFs|
+genetic unit regulated	"stimulon // ""regulon"" // ""operon"" // ""global"""
+Group Translocators	Phosphotransferase Systems (PEP-dependent PTS)
+information transfer	RNA related
+large molecule carriers	"thioredoxin, glutaredoxin // ""cytochromes"" // ""biotin carboxyl carrier protein"" // ""acyl carrier protein"""
+lipopolysaccharide	"lipid A // ""core region"""
+metabolism	"energy production/transport // ""central intermediary metabolism"""
+metabolism of other compounds	"sulfur metabolism // ""nitrogen metabolism"""
+|MultiFun|	"transport // ""regulation"" // ""metabolism"" // ""information transfer"" // ""cell processes"""
+nucleotides	"pyrimidine ribonucleotide biosynthesis // ""pyrimidine biosynthesis"" // ""purine ribonucleotide biosynthesis"" // ""purine biosynthesis"""
+|ORFs|	|Conserved-Hypothetical-ORFs|
+posttranscriptional	"translation attenuation and efficiency // ""proteases, cleavage of compounds"" // ""inhibition / activation of enzymes"" // ""covalent modification, demodification, maturation"" // ""antisense RNA"""
+Primary Active Transporters	Oxidoreduction-driven Active Transporters
+protection	"radiation // ""drug resistance/sensitivity"" // ""detoxification"""
+protein related	"turnover, degradation // ""translation"" // ""ribosomal proteins"" // ""posttranslational modification"" // ""nucleoproteins, basic proteins"" // ""chaperoning, repair (refolding)"" // ""amino acid -activation"""
+Pyrophosphate Bond (ATP; GTP; P2) Hydrolysis-driven Active Transporters	"The Type II (General) Secretory Pathway (IISP) Family // ""The P-type ATPase (P-ATPase) Superfamily"" // ""The H+- or Na+-translocating F-type, V-type and A-type ATPase (F-ATPase) Su"""
+RNA related	"tRNA // ""Transcription related"" // ""RNA modification"" // ""RNA degradation"" // ""antisense RNA"""
+The ATP-binding Cassette (ABC) Superfamily + ABC-type Uptake Permeases	"ABC superfamily, periplasmic binding component // ""ABC superfamily, membrane component"" // ""ABC superfamily, ATP binding and membrane component"" // ""ABC superfamily ATP binding cytoplasmic component"""
+transcriptional level	"sigma factors, anti-sigmafactors // ""repressor"" // ""activator"""
+transport	"Transporters of Unknown Classification // ""Putative uncharacterized transport protein"" // ""Electrochemical potential driven transporters"" // ""Accessory Factors Involved in Transport"""
+type of regulation	"unknown // ""transcriptional level"" // ""posttranscriptional"""

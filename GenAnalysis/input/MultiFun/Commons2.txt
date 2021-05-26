@@ -1,0 +1,15 @@
+"Ontology - parents of class from Ontology - parents of class from Ontology - parents of class from Gene names from PromSEX project i"	"Matches"
+|All-Genes|	|Genes|
+"biosynthesis of building blocks"	"nucleotides" // "cofactors, small molecule carriers" // "amino acids"
+"biosynthesis of macromolecules (cellular constituents)"	"lipopolysaccharide" // "large molecule carriers"
+"cell processes"	"protection" // "adaptations"
+|Genes|	|ORFs| // |MultiFun|
+"information transfer"	"RNA related" // "protein related" // "DNA related"
+"metabolism"	"metabolism of other compounds" // "energy production/transport" // "energy metabolism, carbon" // "degradation of macromolecules" // "central intermediary metabolism" // "carbon utilization" // "biosynthesis of macromolecules (cellular constituents)" // "biosynthesis of building blocks"
+|MultiFun|	"transport" // "metabolism" // "information transfer" // "extrachromosomal" // "cell structure" // "cell processes"
+"Primary Active Transporters"	"Pyrophosphate Bond (ATP; GTP; P2) Hydrolysis-driven Active Transporters"
+"Pyrophosphate Bond (ATP; GTP; P2) Hydrolysis-driven Active Transporters"	"The ATP-binding Cassette (ABC) Superfamily + ABC-type Uptake Permeases"
+"regulation"	"type of regulation" // "genetic unit regulated"
+"transcriptional level"	"complex regulation"
+"transport"	"Primary Active Transporters" // "Group Translocators" // "Electrochemical potential driven transporters" // "Channel-type Transporters"
+"type of regulation"	"transcriptional level" // "posttranscriptional" // "DNA structure level"

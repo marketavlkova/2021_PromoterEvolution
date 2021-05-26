@@ -1,0 +1,8 @@
+"Ontology - parents of class from Ontology - parents of class from Ontology - parents of class from Ontology - parents of class from "	"Matches"
+"a DNA segment"	|All-Genes|
+|All-Genes|	|Genes|
+|Genes|	|MultiFun|
+|MultiFun|	"transport" // "regulation" // "metabolism"
+|Polymer-Segments|	"a DNA segment"
+"regulation"	"type of regulation"
+"transport"	"Primary Active Transporters"

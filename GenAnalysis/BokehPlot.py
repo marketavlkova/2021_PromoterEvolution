@@ -32,7 +32,7 @@ def main():
     ### load data files to check for mismatches in gene names after using EcoCyc
     ecocyc_in = pd.read_csv('output/GeneNames.csv', delimiter = ',')
     ### load data table with PSS and API values
-    plot_data = pd.read_csv('output/DataProm&GenesCommon.csv', delimiter = ',')
+    plot_data = pd.read_csv('output/DataIGRs&GenesCommon.csv', delimiter = ',')
     ### add gene names to the table with Ide and Seg
     data = pd.concat([plot_data, ecocyc_in], axis = 1)
 
@@ -171,7 +171,7 @@ def main():
     else:
         mplot = mgene + 0.01
     ### set the figure dimension and other characteristics
-    pl1 = figure(tools = tls, tooltips = tltips, plot_width = 750, plot_height = 750, x_range = (-0.012, mplot), y_range = (-0.012, mplot), x_axis_label = 'Promoters', y_axis_label = 'Genes')
+    pl1 = figure(tools = tls, tooltips = tltips, plot_width = 750, plot_height = 750, x_range = (-0.012, mplot), y_range = (-0.012, mplot), x_axis_label = 'Intergenic regions', y_axis_label = 'Open reading frames')
     ### set plot main title
     pl1.title.text = 'Proportion of segregating sites'
     ### set the Seg values to be in the plotted
@@ -188,7 +188,7 @@ def main():
     ########## 2nd PLOT DEFINITION ##########
     #########################################
     ### set the figure dimension and other characteristics
-    pl2 = figure(tools = tls, tooltips = tltips, plot_width = 375, plot_height = 375, x_range = (-0.012, mplot), y_range = (-0.012, mplot), x_axis_label = 'Promoters', y_axis_label = 'Genes')
+    pl2 = figure(tools = tls, tooltips = tltips, plot_width = 375, plot_height = 375, x_range = (-0.012, mplot), y_range = (-0.012, mplot), x_axis_label = 'Intergenic regions', y_axis_label = 'Open reading frames')
     ### set plot main title
     pl2.title.text = 'Proportion of segregating sites'
     ### set the Seg values to be in the plotted
@@ -213,7 +213,7 @@ def main():
         mplot = mgene + 0.4
 
     ### set the figure dimension and other characteristics
-    pl3 = figure(tools = tls, tooltips = tltips, plot_width = 750, plot_height = 750, x_range = (-0.4, mplot), y_range = (-0.4, mplot), x_axis_label = 'Promoters', y_axis_label = 'Genes')
+    pl3 = figure(tools = tls, tooltips = tltips, plot_width = 750, plot_height = 750, x_range = (-0.4, mplot), y_range = (-0.4, mplot), x_axis_label = 'Intergenic regions', y_axis_label = 'Open reading frames')
     ### set plot main title
     pl3.title.text = '100 - average pairwise identity'
     ### set the Ide values to be in the plotted
@@ -230,7 +230,7 @@ def main():
     ########## 4th PLOT DEFINITION ##########
     #########################################
     ### set the figure dimension and other characteristics
-    pl4 = figure(tools = tls, tooltips = tltips, plot_width = 375, plot_height = 375, x_range = (-0.4, mplot), y_range = (-0.4, mplot), x_axis_label = 'Promoters', y_axis_label = 'Genes')
+    pl4 = figure(tools = tls, tooltips = tltips, plot_width = 375, plot_height = 375, x_range = (-0.4, mplot), y_range = (-0.4, mplot), x_axis_label = 'Intergenic regions', y_axis_label = 'Open reading frames')
     ### set plot main title
     pl4.title.text = '100 - average pairwise identity'
     ### set the Ide values to be in the plotted
@@ -292,7 +292,7 @@ def main():
             else:
                 mplot = mgene + 0.4
             ### set the figure dimension and other characteristics
-            pl3 = figure(tools = tls, tooltips = tltips, plot_width = 750, plot_height = 750, x_range = (-0.4, mplot), y_range = (-0.4, mplot), x_axis_label = 'Promoters', y_axis_label = 'Genes')
+            pl3 = figure(tools = tls, tooltips = tltips, plot_width = 750, plot_height = 750, x_range = (-0.4, mplot), y_range = (-0.4, mplot), x_axis_label = 'Intergenic regions', y_axis_label = 'Open reading frames')
             ### set plot main title
             pl3.title.text = '100 - average pairwise identity'
             ### set the Ide values to be in the plotted
@@ -318,7 +318,7 @@ def main():
             else:
                 mplot = mgene + 0.01
             ### set the figure dimension and other characteristics
-            pl4 = figure(tools = tls, tooltips = tltips, plot_width = 750, plot_height = 750, x_range = (-0.012, mplot), y_range = (-0.012, mplot), x_axis_label = 'Promoters', y_axis_label = 'Genes')
+            pl4 = figure(tools = tls, tooltips = tltips, plot_width = 750, plot_height = 750, x_range = (-0.012, mplot), y_range = (-0.012, mplot), x_axis_label = 'Intergenic regions', y_axis_label = 'Open reading frames')
             ### set plot main title
             pl4.title.text = 'Proportion of segregating sites'
             ### set the Seg values to be in the plotted
@@ -345,7 +345,7 @@ def main():
     box_data = final_table
     box_data.index = list(box_data.BC0)
     box1 = figure(plot_width = 600, plot_height = 600, y_range = list(main_plot_key.keys()), x_range = (-0.012, 0.31), x_axis_label = 'Proportion of segregating sites', y_axis_label = 'Main function groups')
-    box1.title.text = 'Promoters'
+    box1.title.text = 'Intergenic regions'
     box1.xaxis.major_label_orientation = 'vertical'
 
     mid = []
@@ -369,7 +369,7 @@ def main():
     box1.hbar(y = list(main_plot_key.keys()), height = 0.5, left = upper, right = upper, color = 'black')
 
     box2 = figure(plot_width = 600, plot_height = 600, y_range = list(main_plot_key.keys()), x_range = (-0.012, 0.31), x_axis_label = 'Proportion of segregating sites', y_axis_label = 'Main function groups')
-    box2.title.text = 'Genes'
+    box2.title.text = 'Open reading frames'
     box2.xaxis.major_label_orientation = 'vertical'
 
     mid = []
@@ -441,7 +441,7 @@ def main():
                             plot_key[all_keys[k]] = grp
 
             box1 = figure(plot_width = 600, plot_height = 600, y_range = list(plot_key.values()), x_range = (-0.012, 0.31), x_axis_label = 'Proportion of segregating sites', y_axis_label = 'Subgroups 1: ' + list(main_plot_key.keys())[i])
-            box1.title.text = 'Promoters'
+            box1.title.text = 'Intergenic regions'
             box1.xaxis.major_label_orientation = 'vertical'
 
             box1.hbar(y = list(plot_key.values()), height = 0.5, left = bottom, right = top, color = pal[i][len(list(plot_key.keys()))])
@@ -469,7 +469,7 @@ def main():
                     rem.append(grp)
 
             box2 = figure(plot_width = 600, plot_height = 600, y_range = list(plot_key.values()), x_range = (-0.012, 0.31), x_axis_label = 'Proportion of segregating sites', y_axis_label = 'Subgroups 1: ' + list(main_plot_key.keys())[i])
-            box2.title.text = 'Genes'
+            box2.title.text = 'Open reading frames'
             box2.xaxis.major_label_orientation = 'vertical'
 
             box2.hbar(y = list(plot_key.values()), height = 0.5, left = bottom, right = top, color = pal[i][len(list(plot_key.keys()))])

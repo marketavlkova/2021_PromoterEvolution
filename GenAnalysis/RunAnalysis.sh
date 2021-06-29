@@ -45,7 +45,7 @@ printf "Producing Supp Figures 1c and 1d\n"
 ### STEP 4:
 ### create list of gene names for function group plots
 printf "Generating list of gene names for function group analysis\n"
-cat output/DataProm\&GenesCommon.csv | awk 'BEGIN{
+cat output/DataIGRs\&GenesCommon.csv | awk 'BEGIN{
   FS = ",";
   printf "Gene";
 }

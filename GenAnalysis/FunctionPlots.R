@@ -86,18 +86,6 @@ for (l in names(lib.pss)) {
   pvals.pss <- c(pvals.pss, wt.pss$p.value)
   wt.api <- wilcox.test(x = query.api, y = rest.api)
   pvals.api <- c(pvals.api, wt.api$p.value)
-  if (wt.pss$p.value < 0.05) {
-    print(paste('PSS', l, 'Mean:', round(mean(query.pss), digits = 4)))
-    print(paste('PSS rest Mean:', round(mean(rest.pss), digits = 4)))
-    print(paste('p-value:', round(wt.pss$p.value, digits = 5)))
-    cat('\n')
-  }
-  if (wt.api$p.value < 0.05) {
-    print(paste('API', l, round(mean(query.api), digits = 4)))
-    print(paste('API rest', round(mean(rest.api), digits = 4)))
-    print(paste('p-value:', round(wt.api$p.value, digits = 5)))
-    cat('\n')
-  }
 }
 names(pvals.pss) <- names(lib.pss)
 names(pvals.api) <- names(lib.api)
@@ -112,23 +100,19 @@ par(las = 1, mar = c(5.1, 7, 2.1, 2.1))
     len <- length(lib.pss[[l]])
     if (l == 1) {
       plot(lib.pss[[l]], jitter(rep(l, len), factor = (10 / l)),
-          xlim = c(0, 0.3), ylim = c(0.75, 10.25),
+          xlim = c(0, 0.45), ylim = c(0.75, 10.25),
           yaxt = 'n', xaxt = 'n', pch = 16, col = alpha(cols[l], 0.4),
           xlab = '', ylab = '', cex = 0.8)
     } else {
       points(lib.pss[[l]], jitter(rep(l, len), factor = (10 / l)),
             pch = 16, col = alpha(cols[l], 0.4), cex = 0.8)
     }
-    if (pvals.pss[l] < 0.01) {
-      points(rep(0.3, 2), c(l - 0.1, l + 0.1), pch = '*', cex = 1.2)
-    } else if (pvals.pss[l] < 0.05) {
-      points(0.3, l, pch = '*', cex = 1.2)
-    }
-    arrows(mean(lib.pss[[l]]), l - 0.25, mean(lib.pss[[l]]), l + 0.25, length = 0)
+    text(x = 0.425, y = l, labels = signif(pvals.pss[l], digits = 2))
+    arrows(median(lib.pss[[l]]), l - 0.25, median(lib.pss[[l]]), l + 0.25, length = 0)
   }
-  axis(side = 1, at = seq(0, 0.3, by = 0.05), labels = seq(0, 0.3, by = 0.05), cex.axis = 0.75)
+  axis(side = 1, at = seq(0, 0.4, by = 0.1), labels = seq(0, 0.4, by = 0.1), cex.axis = 0.75)
   axis(side = 2, at = c(1:10), labels = names(lib.pss), cex.axis = 0.75)
-  title(xlab = 'Proportion of segregating sites of promoter regions', line = 2, cex.lab = 0.8)
+  title(xlab = 'Proportion of segregating sites in IGRs', line = 2, cex.lab = 0.8)
 dev.off()
 
 pdf(file = paste0(dir, '/SupplementaryFigure_1b.pdf'), width = 5, height = 5)
@@ -137,21 +121,17 @@ par(las = 1, mar = c(5.1, 7, 2.1, 2.1))
     len <- length(lib.api[[l]])
     if (l == 1) {
       plot(lib.api[[l]], jitter(rep(l, len), factor = (10 / l)),
-          xlim = c(0, 8.2), ylim = c(0.75, 10.25),
+          xlim = c(0, 14), ylim = c(0.75, 10.25),
           yaxt = 'n', xaxt = 'n', pch = 16, col = alpha(cols[l], 0.4),
           xlab = '', ylab = '', cex = 0.8)
     } else {
       points(lib.api[[l]], jitter(rep(l, len), factor = (10 / l)),
             pch = 16, col = alpha(cols[l], 0.4), cex = 0.8)
     }
-    if (pvals.api[l] < 0.01) {
-      points(rep(8, 2), c(l - 0.1, l + 0.1), pch = '*', cex = 1.2)
-    } else if (pvals.api[l] < 0.05) {
-      points(8, l, pch = '*', cex = 1.2)
-    }
-    arrows(mean(lib.api[[l]]), l - 0.25, mean(lib.api[[l]]), l + 0.25, length = 0)
+    text(x = 13, y = l, labels = signif(pvals.api[l], digits = 2))
+    arrows(median(lib.api[[l]]), l - 0.25, median(lib.api[[l]]), l + 0.25, length = 0)
   }
-  axis(side = 1, at = seq(0, 8.2, by = 2), labels = seq(0, 8.2, by = 2), cex.axis = 0.75)
+  axis(side = 1, at = seq(0, 12.5, by = 2), labels = seq(0, 12.5, by = 2), cex.axis = 0.75)
   axis(side = 2, at = c(1:10), labels = names(lib.api), cex.axis = 0.75)
-  title(xlab = '100 - average pairwise identity of promoter regions', line = 2, cex.lab = 0.8)
+  title(xlab = '100 - average pairwise identity in IGRs', line = 2, cex.lab = 0.8)
 dev.off()

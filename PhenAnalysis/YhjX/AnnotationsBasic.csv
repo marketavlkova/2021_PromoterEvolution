@@ -1,0 +1,7 @@
+name,structure,start,end,color
+yhjY,gene,1,93,yellow
+-35,sigma70,245,250,grey
+-10,sigma70,272,277,grey
+PyrR,TF,229,238,green
+PyrR,TF,208,217,green
+yhjX,gene,322,413,yellow

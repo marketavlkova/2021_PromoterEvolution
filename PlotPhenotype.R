@@ -1,0 +1,1750 @@
+#!/usr/local/bin/Rscript
+### Script producing plots from phenotypic analysis
+### example to run: ./PlotPhenotype.R
+
+library('flowCore') ### handling FCS files
+library('scales') ### for function alpha
+library('scatterplot3d') ### for 3D plot
+### incorporate function extracting modal population expression values
+if (!exists('foo', mode = 'function')) source('PeaksEx.R')
+### incorporate function extracting transcriptional noise values
+if (!exists('foo', mode = 'function')) source('CvEx.R')
+### incorporate function calculating distance of point from a line (plasticity)
+if (!exists("foo", mode = "function")) source("PointLine3D.R")
+
+### save list of all possible conditions
+### which is further used as a dictionary
+cond.ls <- list('_glucose_' = 'Glucose',
+                  '_pyruvic-acid_' = 'Pyruvic acid',
+                  '_02-pyruvic-acid_' = 'Pyruvic acid (0.2%)',
+                  '_L-malic-acid_' = 'L-malic acid',
+                  '_fucose_' = 'Fucose',
+                  '_glycerol_' = 'Glycerol',
+                  '_glycerol+AMP_' = 'Glycerol + AMP',
+                  '_glycerol+cytidine_' = 'Glycerol + Cyt',
+                  '_galactose_' = 'Galactose',
+                  '_lactose_' = 'Lactose',
+                  '_glucose+tryptophan_' = 'Glucose + Try',
+                  '_glucose+phenylalanine_' = 'Glucose + Phe',
+                  '_D-mannose_' = 'D-mannose',
+                  '_L-arabinose_' = 'L-arabionse')
+### create a similar list as above with shortcuts
+short.ls <- list('_glucose_' = 'Glu',
+                  '_pyruvic-acid_' = 'Pyr',
+                  '_02-pyruvic-acid_' = 'Pyr2',
+                  '_L-malic-acid_' = 'Mal',
+                  '_fucose_' = 'Fuc',
+                  '_glycerol_' = 'Gly',
+                  '_glycerol+AMP_' = 'Amp',
+                  '_glycerol+cytidine_' = 'Cyt',
+                  '_galactose_' = 'Gal',
+                  '_lactose_' = 'Lac',
+                  '_glucose+tryptophan_' = 'Try',
+                  '_glucose+phenylalanine_' = 'Phe',
+                  '_D-mannose_' = 'Man',
+                  '_L-arabinose_' = 'Ara')
+### create a list of promoters in order
+### from highest PSS to the lowest PSS
+prom.pss <- list('AldA' = 'aldA',
+                'YhjX' = 'yhjX',
+                'LacZ' = 'lacZ',
+                'AceB' = 'aceB',
+                'Mtr' = 'mtr',
+                'Cdd' = 'cdd',
+                'DctA' = 'dctA',
+                'PtsG' = 'ptsG',
+                'PurA' = 'purA',
+                'TpiA' = 'tpiA')
+
+##################################################
+######## DATA LOADING AND PREPROCESSING ##########
+##################################################
+
+### set working directories
+root.path <- getwd()
+### get promoter names and directories with FC datafiles
+proms <- list.files(path = 'PhenAnalysis/')
+prom.path <- vector()
+data.path <- vector()
+for (p in proms) {
+  fc <- paste0(root.path, '/PhenAnalysis/', p, '/')
+  prom.path <- c(prom.path, fc)
+  dates <- list.files(path = paste0(fc, 'FC/'))
+  for (d in dates) {
+    set <- list.files(path = paste0(fc, 'FC/', d, '/'))
+    data.path <- c(data.path, paste0(fc, 'FC/', d, '/', set, '/'))
+  }
+}
+names(prom.path) <- proms
+
+### save number of FCS datafiles for segregating variants
+### (excluding lacZ which has a different layout)
+nseg <- c(32, 36, 20, 16, 28, 15, 9, 8, 24)
+nprom <- 1
+nrep <- 1
+### loop through all datasets and get max kernel densities
+### from GFP channel & coefficients of variation
+### (i.e. modal population expression & standard deviation / modal population expression)
+ndir <- length(unlist(strsplit(data.path[1], split = '/', fixed = T)))
+for (path in data.path) {
+  setwd(path)
+  if (!file.exists('Peaks.csv')) {
+    ### extract info about last directory
+    end.dir <- unlist(strsplit(path, split = '/', fixed = T))[ndir]
+    ### change number of files in seg. promoter dir. accordingly
+    if (!startsWith(end.dir, 'pxxx')) {
+      nfiles <- 96
+    } else {
+      nfiles <- nseg[nprom]
+      if (nrep < 3) {
+        nrep <- nrep + 1
+      } else {
+        nrep <- 1
+        nprom <- nprom + 1
+      }
+    }
+    cond <- unlist(strsplit(end.dir, split = '_', fixed = T))[3]
+    ### get all files names ending with .fsc
+    Files <- Sys.glob('*.fcs')
+    InFiles <- reorder(Files, nfiles)
+    ### get modal population expression (max kernel density from GFP channel)
+    Fpeaks <- exPeaks(InFiles, (length(Files) / nfiles))
+    Fpeaks <- matrix(Fpeaks, nrow = nfiles, ncol = 1, byrow = T)
+    rownames(Fpeaks) <- paste(1:nfiles)
+    colnames(Fpeaks) <- cond
+    write.csv(Fpeaks, 'Peaks.csv', row.names = T)
+    ### get transcriptional noise, i.e., coefficient of variation
+    ### (standard deviation from GFP channel / modal population expression)
+    Fcvs <- exCvs(InFiles, (length(Files) / nfiles))
+    Fcvs <- matrix(Fcvs, nrow = nfiles, ncol = 1, byrow = T)
+    rownames(Fcvs) <- paste(1:nfiles)
+    colnames(Fcvs) <- cond
+    write.csv(Fcvs, 'Cvs.csv', row.names = T)
+  }
+}
+
+setwd(root.path)
+### read peak value and SNPs info files for all promoters in glucose
+mut.ls <- list()
+seg.ls <- list()
+offset.m <- vector()
+offset.n <- vector()
+offnames <- vector()
+p <- 1
+s <- 1
+n <- 1
+### change nseg variable to number of segregating variants instead
+nseg <- c(18, 25, 12, 7, 20, 10, 4, 3, 16)
+for (path in data.path) {
+  ### extract info about last directory and growth condition
+  end.dir <- unlist(strsplit(path, split = '/', fixed = T))[ndir]
+  cond <- unlist(strsplit(end.dir, split = '_', fixed = T))[3]
+  ### get info about type of the promoters from directory name
+  prom <- unlist(strsplit(path, split = '/', fixed = T))[ndir - 3]
+  ### if directory contains seg. promoter variants
+  ### save modal expression and noise values in seg.ls list
+  if (startsWith(end.dir, 'pxxx')) {
+    data.m <- read.csv(paste0(path, 'Peaks.csv'), header = T)
+    data.m <- data.m[, -1]
+    data.m <- data.m[which(!is.na(data.m))]
+    data.n <- read.csv(paste0(path, 'Cvs.csv'), header = T)
+    data.n <- data.n[, -1]
+    data.n <- data.n[which(!is.na(data.n))]
+    df <- cbind(data.m[1:nseg[s]], data.n[1:nseg[s]])
+    seg.ls[[paste0(prom, '_', cond, '_')]] <- df
+    ### save values for offset calculation
+    ### (in both expression and noise)
+    pos.seg.m <- data.m[nseg[s] + 1]
+    neg.seg.m <- data.m[nseg[s] + 2]
+    mg1655.seg.m <- data.m[nseg[s]]
+    pos.seg.n <- data.n[nseg[s] + 1]
+    neg.seg.n <- data.n[nseg[s] + 2]
+    mg1655.seg.n <- data.n[nseg[s]]
+    ### and save corresponding values from random
+    ### mutagenesis in mut.ls list
+    path.mut <- data.path[which((grepl(prom, data.path) &
+                                  grepl(paste0('_', cond, '_'), data.path, fixed = T) &
+                                  !grepl('pxxx', data.path)))]
+    data.m <- read.csv(paste0(path.mut, 'Peaks.csv'), header = T)
+    data.m <- data.m[, -1]
+    data.n <- read.csv(paste0(path.mut, 'CVs.csv'), header = T)
+    data.n <- data.n[, -1]
+    df <- cbind(c(data.m[1:92], data.m[96]), c(data.n[1:92], data.n[96]))
+    snp <- read.csv(paste0(prom.path[p], 'SimMatrixMutagenesis.csv'), header = T)
+    snp <- snp[, 1:2]
+    snp <- snp[-1,]
+    snp <- rbind(snp, c('MG1655', 0))
+    mut.ls[[paste0(prom, '_', cond, '_')]] <- cbind(snp, df)
+    ### save values for offset
+    pos.mut.m <- data.m[94]
+    neg.mut.m <- data.m[95]
+    mg1655.mut.m <- data.m[96]
+    pos.mut.n <- data.n[94]
+    neg.mut.n <- data.n[95]
+    mg1655.mut.n <- data.n[96]
+    ### calculate offset between segregating and
+    ### random mutation datasets (in both expression and noise)
+    off.m <- mean(c((pos.mut.m - pos.seg.m), (neg.mut.m - neg.seg.m), (mg1655.mut.m - mg1655.seg.m)), na.rm = T)
+    offset.m <- c(offset.m, off.m)
+    off.n <- mean(c((pos.mut.n - pos.seg.n), (neg.mut.n - neg.seg.n), (mg1655.mut.n - mg1655.seg.n)), na.rm = T)
+    offset.n <- c(offset.n, off.n)
+    offnames <- c(offnames, paste0(prom, '_', cond, '_'))
+    if (n < 3) {
+      n <- n + 1
+    } else {
+      s <- s + 1
+      p <- p + 1
+      n <- 1
+    }
+  ### if it is lacZ promoter directory do the same as above
+  ### just the microplate layout is different from the others
+  ### with zero offset as it is a single dataset
+  } else if (startsWith(end.dir, 'placZ')) {
+    data.m <- read.csv(paste0(path, 'Peaks.csv'), header = T)
+    data.m <- data.m[, -1]
+    data.n <- read.csv(paste0(path, 'Cvs.csv'), header = T)
+    data.n <- data.n[, -1]
+    mut.lacZ <- cbind(c(data.m[1:8], data.m[10:18], data.m[20:21], data.m[23:31], data.m[59]),
+                c(data.n[1:8], data.n[10:18], data.n[20:21], data.n[23:31], data.n[59]))
+    snp <- read.csv(paste0(prom.path[p], 'SimMatrixMutagenesis.csv'), header = T)
+    snp <- snp[, 1:2]
+    snp <- snp[-1,]
+    names <- snp[, 1][which(snp[, 2] > 0 & snp[, 2] < 4)]
+    names <- c(names, 'MG1655')
+    vals <- snp[, 2][which(snp[, 2] > 0 & snp[, 2] < 4)]
+    vals <- c(vals, 0)
+    df.mut <- cbind(names, vals, mut.lacZ)
+    mut.ls[[paste0(prom, '_', cond, '_')]] <- as.data.frame(df.mut)
+    seg.ls[[paste0(prom, '_', cond, '_')]] <- cbind(c(data.m[41:48], data.m[33], data.m[49:59]),
+                              c(data.n[41:48], data.n[33], data.n[49:59]))
+    ### no offset needed as this is a single dataset
+    offset.m <- c(offset.m, 0)
+    offset.n <- c(offset.n, 0)
+    offnames <- c(offnames, paste0(prom, '_', cond, '_'))
+    if (n < 3) {
+      n <- n + 1
+    } else {
+      p <- p + 1
+      n <- 1
+    }
+  }
+}
+names(offset.m) <- offnames
+names(offset.n) <- offnames
+
+##################################################
+################ PLOTTING BEGINS #################
+##################################################
+
+##################################################
+############### CORRELATION PLOTS ################
+########### FIGURE 3 AND SUPP FIGURE 2 ###########
+##################################################
+
+### calculate madian value and standard deviation in modal population expression
+### for all segregating variants of each promoter and condition
+ranges <- list()
+for (pr in proms) {
+  args <- offnames[which(grepl(pr, offnames))]
+  for (a in args) {
+    seg.ok <- seg.ls[[a]][, 1]
+    vals <- c(sd(seg.ok), median(seg.ok))
+    names(vals) <- c('range', 'median')
+    ranges[[a]] <- vals
+  }
+}
+
+### set number of cloned (varC) and total number (varT)
+### of segregating promoter variants
+varC <- c(18, 25, 12, 7, 20, 20, 10, 4, 3, 16)
+varT <- c(26, 32, 18, 7, 26, 25, 14, 6, 3, 22)
+### save proportion of segregating sites (pss)
+### and average pairwise identity (api) values
+pss <- c(65 / 470, 79 / 398, 29 / 332, 25 / 384, 57 / 324, 47 / 356, 32 / 496, 11 / 305, 7 / 309, 84 / 430)
+api <- c(100 - 97.87, 100 - 96.7, 100 - 98.78, 100 - 99.52, 100 - 96.19, 100 - 97.83, 100 - 99.16, 100 - 99.57, 100 - 99.76, 100 - 95.5)
+names(varC) <- proms
+names(varT) <- proms
+names(pss) <- proms
+names(api) <- proms
+
+### create matrix combining all the values
+### obtained above for each promoter and condition
+mm <- matrix(, ncol = 5, nrow = 30)
+i <- 1
+for (pr in names(prom.pss)) {
+  row <- c(varC[pr], varT[pr], pss[pr], api[pr])
+  args <- offnames[which(grepl(pr, offnames))]
+  mm[i,] <- c(row, ranges[[args[1]]][1])
+  mm[i+1,] <- c(row, ranges[[args[2]]][1])
+  mm[i+2,] <- c(row, ranges[[args[3]]][1])
+  i <- i + 3
+}
+colnames(mm) <- c('VariantsC', 'VariantsT', 'PSS', 'API', 'SD')
+rownames(mm) <- c(rep(proms[1], 3), rep(proms[2], 3),
+        rep(proms[3], 3), rep(proms[4], 3),
+        rep(proms[5], 3), rep(proms[6], 3),
+        rep(proms[7], 3), rep(proms[8], 3),
+        rep(proms[9], 3), rep(proms[10], 3))
+
+### define colors for plotting and legend
+cols <- c(rep('red', 3), rep('blue', 3), rep('green', 3),
+        rep('darkviolet', 3), rep('darkorange', 3),
+        rep('gold', 3), rep('saddlebrown', 3),
+        rep('pink', 3), rep('grey', 3), rep('darkgreen', 3))
+cols.leg <- c('red', 'blue', 'green', 'darkviolet', 'darkorange', 'gold', 'saddlebrown', 'pink', 'grey', 'darkgreen')
+names(cols) <- names(prom.pss)
+
+### plot Figure 3a (correlation of PSS with stdev
+### in modal expression of seg. variants)
+cat(paste('Producing Figure 3a\n'))
+pdf(file = 'Figure_3a.pdf', width = 5, height = 5)
+  par(las = 1, mar = c(5.1, 4.1, 2.1, 2.1))
+
+  plot(x = mm[, 3], y = mm[, 5], xlim = c(0, 0.2), ylim = c(0, 0.3),
+        xlab = '', ylab = '', col = cols, pch = 16)
+  c <- cor.test(mm[, 3], mm[, 5], method = 'spearman', exact = F)
+  mtext(text = paste0('R: ', round(c$estimate, digits = 3)), side = 3, line = -1, cex = 0.9)
+  mtext(text = paste0('p-value: ', round(c$p.value, digits = 5)), side = 3, line = -2, cex = 0.9)
+  title(xlab = 'Proportion of segregating sites in promoters', line = 2.5)
+  title(ylab = 'Stdev in modal expression (segregating variants)', line = 3)
+  legend('topleft', legend = parse(text = sprintf('italic(%s)', prom.pss)), col = cols.leg,
+          pch = 16, title = 'Promoter')
+
+dev.off()
+
+### plot Figure 3b (correlation of total seg. variant number
+### with stdev in modal expression of seg. variants)
+cat(paste('Producing Figure 3b\n'))
+pdf(file = 'Figure_3b.pdf', width = 5, height = 5)
+  par(las = 1, mar = c(5.1, 4.1, 2.1, 2.1))
+
+  plot(x = mm[, 2], y = mm[, 5], xlim = c(3, 32), ylim = c(0, 0.3),
+        xlab = '', ylab = '', col = cols, pch = 16)
+  c <- cor.test(mm[, 2], mm[, 5], method = 'spearman', exact = F)
+  mtext(text = paste0('R: ', round(c$estimate, digits = 3)), side = 3, line = -1, cex = 0.9)
+  mtext(text = paste0('p-value: ', round(c$p.value, digits = 5)), side = 3, line = -2, cex = 0.9)
+  title(xlab = 'Total number of segregating variants', line = 2.5)
+  title(ylab = 'Stdev in modal expression (segregating variants)', line = 3)
+  legend('topleft', legend = parse(text = sprintf('italic(%s)', prom.pss)), col = cols.leg,
+          pch = 16, title = 'Promoter')
+
+dev.off()
+
+### plot Supplementary Figure 2a (correlation of API
+### with stdev in modal expression of seg. variants)
+cat(paste('Producing Figure 2a\n'))
+pdf(file = 'SupplementaryFigure_2a.pdf', width = 5, height = 5)
+  par(las = 1, mar = c(5.1, 4.1, 2.1, 2.1))
+
+  plot(x = mm[, 4], y = mm[, 5], xlim = c(0, 5), ylim = c(0, 0.3),
+        xlab = '', ylab = '', col = cols, pch = 16)
+  c <- cor.test(mm[, 4], mm[, 5], method = 'spearman', exact = F)
+  mtext(text = paste0('R: ', round(c$estimate, digits = 3)), side = 3, line = -1, cex = 0.9)
+  mtext(text = paste0('p-value: ', round(c$p.value, digits = 5)), side = 3, line = -2, cex = 0.9)
+  title(xlab = '100 - Average pairwise identity in promoters', line = 2.5)
+  title(ylab = 'Stdev in modal expression (segregating variants)', line = 3)
+  legend('topleft', legend = parse(text = sprintf('italic(%s)', prom.pss)), col = cols.leg,
+          pch = 16, title = 'Promoter')
+
+dev.off()
+
+### plot Supplementary Figure 2b (correlation of number of cloned seg. variants
+### with stdev in modal expression of seg. variants)
+cat(paste('Producing Figure 2b\n'))
+pdf(file = 'SupplementaryFigure_2b.pdf', width = 5, height = 5)
+  par(las = 1, mar = c(5.1, 4.1, 2.1, 2.1))
+
+  plot(x = mm[, 1], y = mm[, 5], xlim = c(3, 25), ylim = c(0, 0.3),
+        xlab = '', ylab = '', col = cols, pch = 16)
+  c <- cor.test(mm[, 1], mm[, 5], method = 'spearman', exact = F)
+  mtext(text = paste0('R: ', round(c$estimate, digits = 3)), side = 3, line = -1, cex = 0.9)
+  mtext(text = paste0('p-value: ', round(c$p.value, digits = 5)), side = 3, line = -2, cex = 0.9)
+  title(xlab = 'Number of cloned segregating variants', line = 2.5)
+  title(ylab = 'Stdev in modal expression (segregating variants)', line = 3)
+  legend('topleft', legend = parse(text = sprintf('italic(%s)', prom.pss)), col = cols.leg,
+          pch = 16, title = 'Promoter')
+
+dev.off()
+
+##################################################
+################# MAPPING PLOTS ##################
+#################### FIGURE 4 ####################
+##################################################
+
+### plot upper part of Figure 4a (mapping the effect of random SNPs
+### relative to MG1655 variant to position within promoter sequence)
+### and calculate differences caused by the SNPs in aceB promoter
+### (save into the 'comp' variable)
+cat(paste('Producing Figure 4a.1\n'))
+comp <- list()
+pdf(file = 'Figure_4a.1.pdf', width = 15, height = 7)
+  par(mfcol = c(3, 5),
+      las = 1)
+
+  ### loop through first 5 promoters
+  for (pr in names(prom.pss)[1:5]) {
+    ### extract info about all three environments
+    args <- offnames[which(grepl(pr, offnames))]
+    for (i in 1:3) {
+      a <- args[i]
+      arg <- paste0('_', unlist(strsplit(a, split = '_'))[2], '_')
+      if (i == 1) {
+        conds <- cond.ls[[which(endsWith(names(cond.ls), arg))]]
+      } else {
+        conds <- c(conds, cond.ls[[which(endsWith(names(cond.ls), arg))]])
+      }
+    }
+    names(conds) <- args
+    ### obtain data about SNP positions for each random variant
+    snp_map <- read.csv(paste0(prom.path[pr], '1SNPmap.csv'), header = T)
+    len <- length(snp_map[, 2])
+    ### obtain info about promoter annotations (TF and so on)
+    anns <- read.csv(paste0(prom.path[pr], 'AnnotationsBasic.csv'), header = T)
+    ### loop through all three envrionments
+    for (a in args) {
+      ### save modal expression values for random variants and the MG1655 varaint
+      pl <- as.numeric(mut.ls[[a]][, 3][which(as.numeric(mut.ls[[a]][, 2]) == 1)])
+      mg <- as.numeric(mut.ls[[a]][length(mut.ls[[a]][, 3]), 3])
+      ### in the case of aceB promoter calculate differences in
+      ### modal expression relative to MG1655 variant for Figure 4b
+      if (grepl('AceB', a)) {
+        comp[[a]] <- (pl - mg)
+      }
+      ### plotting
+      if (a == args[1]) {
+        par(mar = c(0, 4, 3, 1))
+        plot(3, 3, type = 'n', xlim = c(1, snp_map[len, 2]),
+              ylim = c(2, 5), xaxt = 'n',
+              main = parse(text = sprintf('italic(%s)', prom.pss[pr])),
+              cex.main = 1.5, xlab = '', ylab = '')
+      } else if (a == args[2]) {
+        par(mar = c(1.5, 4, 1.5, 1))
+        plot(3, 3, type = 'n', xlim = c(1, snp_map[len, 2]),
+              ylim = c(2, 5), xaxt = 'n',
+              cex.main = 1.5, xlab = '', ylab = '')
+      } else {
+        par(mar = c(3, 4, 0, 1))
+        plot(3, 3, type = 'n', xlim = c(1, snp_map[len, 2]),
+              ylim = c(2, 5), xaxt = 'n',
+              cex.main = 1.5, xlab = '', ylab = '')
+      }
+      for (an in 1:length(anns[, 1])) {
+        rect(anns[an, 3], 2, anns[an, 4], 5, col = alpha(anns[an, 5], 0.25), border = NA)
+      }
+      mtext(conds[which(names(conds) == a)], side = 3, line = -1.5, adj = 0.01)
+      arrows(1, mg, snp_map[len, 2], mg, length = 0)
+      for (p in 1:length(pl)) {
+        if (!is.na(pl[p])) {
+          arrows(snp_map[p, 2], mg, snp_map[p, 2], pl[p],
+                length = 0, col = alpha('black', 0.8), lwd = 1.5)
+        }
+      }
+      start <- anns[length(anns[, 1]), 3]
+      end <- anns[length(anns[, 1]), 4]
+      positions <- seq(0 - floor(start / 50) * 50, floor((end - start) / 50) * 50, 50)
+      if (a == args[3]) {
+        axis(side = 1, at = seq(start - floor(start / 50) * 50, floor(end / 50) * 50 + 10 * floor((end - start) / 50) + 1, 50),
+              labels = positions, cex.axis = 1)
+      } else {
+        axis(side = 1, at = seq(start - floor(start / 50) * 50, floor(end / 50) * 50 + 10 * floor((end - start) / 50) + 1, 50),
+              labels = rep('', length(positions)), cex.axis = 1)
+      }
+      if (pr == names(prom.pss)[1]) {
+        title(ylab = 'Modal expression (log10, a.u.)', line = 2.5, cex.lab = 1.2)
+      }
+    }
+  }
+
+dev.off()
+
+### plot upper part of Figure 4b (comparing differences in expression
+### relative to MG1655 between conditions in aceB promoter)
+cat(paste('Producing Figure 4b.1\n'))
+pdf(file = 'Figure_4b.1.pdf', width = 9, height = 3)
+  par(mfrow = c(1, 3),
+      las = 1)
+
+  all <- length(comp[[1]])
+  plot(comp[[1]], comp[[2]], pch = 16,
+        xlim = c(-2.25, 2.25), ylim = c(-2.25, 2.25),
+        col = alpha('black', 0.3), xlab = '', ylab = '')
+  title(xlab = 'Glucose', line = 2.5, cex.lab = 1.2)
+  title(ylab = 'Pyruvic acid', line = 2.5, cex.lab = 1.2)
+  abline(h = 0, col = 'blue', lty = 3)
+  abline(v = 0, col = 'blue', lty = 3)
+  both <- cbind(comp[[1]], comp[[2]])
+  tl <- both[, 2][which(both[, 1] < 0)]
+  tl <- tl[which(tl > 0)]
+  tr <- both[, 2][which(both[, 1] > 0)]
+  tr <- tr[which(tr > 0)]
+  bl <- both[, 2][which(both[, 1] < 0)]
+  bl <- bl[which(bl < 0)]
+  br <- both[, 2][which(both[, 1] > 0)]
+  br <- br[which(br < 0)]
+  text(x = -1, y = 1, labels = round(length(tl) / all, digits = 4))
+  text(x = 1, y = 1, labels = round(length(tr) / all, digits = 4))
+  text(x = -1, y = -1, labels = round(length(bl) / all, digits = 4))
+  text(x = 1, y = -1, labels = round(length(br) / all, digits = 4))
+
+  plot(comp[[1]], comp[[3]], pch = 16,
+        xlim = c(-2.25, 2.25), ylim = c(-2.25, 2.25),
+        col = alpha('black', 0.3), xlab = '', ylab = '',
+        main = parse(text = sprintf('italic(%s)', 'aceB')))
+  title(xlab = 'Glucose', line = 2.5, cex.lab = 1.2)
+  title(ylab = 'L-malic acid', line = 2.5, cex.lab = 1.2)
+  abline(h = 0, col = 'blue', lty = 3)
+  abline(v = 0, col = 'blue', lty = 3)
+  both <- cbind(comp[[1]], comp[[3]])
+  tl <- both[, 2][which(both[, 1] < 0)]
+  tl <- tl[which(tl > 0)]
+  tr <- both[, 2][which(both[, 1] > 0)]
+  tr <- tr[which(tr > 0)]
+  bl <- both[, 2][which(both[, 1] < 0)]
+  bl <- bl[which(bl < 0)]
+  br <- both[, 2][which(both[, 1] > 0)]
+  br <- br[which(br < 0)]
+  text(x = -1, y = 1, labels = round(length(tl) / all, digits = 4))
+  text(x = 1, y = 1, labels = round(length(tr) / all, digits = 4))
+  text(x = -1, y = -1, labels = round(length(bl) / all, digits = 4))
+  text(x = 1, y = -1, labels = round(length(br) / all, digits = 4))
+
+  plot(comp[[2]], comp[[3]], pch = 16,
+        xlim = c(-2.25, 2.25), ylim = c(-2.25, 2.25),
+        col = alpha('black', 0.3), xlab = '', ylab = '')
+  title(xlab = 'Pyruvic acid', line = 2.5, cex.lab = 1.2)
+  title(ylab = 'L-malic acid', line = 2.5, cex.lab = 1.2)
+  abline(h = 0, col = 'blue', lty = 3)
+  abline(v = 0, col = 'blue', lty = 3)
+  both <- cbind(comp[[2]], comp[[3]])
+  tl <- both[, 2][which(both[, 1] < 0)]
+  tl <- tl[which(tl > 0)]
+  tr <- both[, 2][which(both[, 1] > 0)]
+  tr <- tr[which(tr > 0)]
+  bl <- both[, 2][which(both[, 1] < 0)]
+  bl <- bl[which(bl < 0)]
+  br <- both[, 2][which(both[, 1] > 0)]
+  br <- br[which(br < 0)]
+  text(x = -1, y = 1, labels = round(length(tl) / all, digits = 4))
+  text(x = 1, y = 1, labels = round(length(tr) / all, digits = 4))
+  text(x = -1, y = -1, labels = round(length(bl) / all, digits = 4))
+  text(x = 1, y = -1, labels = round(length(br) / all, digits = 4))
+
+dev.off()
+
+### plot lower part of Figure 4a (mapping the effect of random SNPs
+### relative to MG1655 variant to position within promoter sequence)
+### and calculate differences caused by the SNPs in dctA promoter
+### (save into the 'comp' variable)
+cat(paste('Producing Figure 4a.2\n'))
+comp <- list()
+pdf(file = 'Figure_4a.2.pdf', width = 15, height = 7)
+  par(mfcol = c(3, 5),
+      las = 1)
+
+  ### loop through first 5 promoters
+  for (pr in names(prom.pss)[6:10]) {
+    ### extract info about all three environments
+    args <- offnames[which(grepl(pr, offnames))]
+    for (i in 1:3) {
+      a <- args[i]
+      arg <- paste0('_', unlist(strsplit(a, split = '_'))[2], '_')
+      if (i == 1) {
+        conds <- cond.ls[[which(endsWith(names(cond.ls), arg))]]
+      } else {
+        conds <- c(conds, cond.ls[[which(endsWith(names(cond.ls), arg))]])
+      }
+    }
+    names(conds) <- args
+    ### obtain data about SNP positions for each random variant
+    snp_map <- read.csv(paste0(prom.path[pr], '1SNPmap.csv'), header = T)
+    len <- length(snp_map[, 2])
+    ### obtain info about promoter annotations (TF and so on)
+    anns <- read.csv(paste0(prom.path[pr], 'AnnotationsBasic.csv'), header = T)
+    ### loop through all three envrionments
+    for (a in args) {
+      ### save modal expression values for random variants and the MG1655 varaint
+      pl <- as.numeric(mut.ls[[a]][, 3][which(as.numeric(mut.ls[[a]][, 2]) == 1)])
+      mg <- as.numeric(mut.ls[[a]][length(mut.ls[[a]][, 3]), 3])
+      ### in the case of dctA promoter calculate differences in
+      ### modal expression relative to MG1655 variant for Figure 4b
+      if (grepl('DctA', a)) {
+        comp[[a]] <- (pl - mg)
+      }
+      ### plotting
+      if (a == args[1]) {
+        par(mar = c(0, 4, 3, 1))
+        plot(3, 3, type = 'n', xlim = c(1, snp_map[len, 2]),
+              ylim = c(2, 5), xaxt = 'n',
+              main = parse(text = sprintf('italic(%s)', prom.pss[pr])),
+              cex.main = 1.5, xlab = '', ylab = '')
+      } else if (a == args[2]) {
+        par(mar = c(1.5, 4, 1.5, 1))
+        plot(3, 3, type = 'n', xlim = c(1, snp_map[len, 2]),
+              ylim = c(2, 5), xaxt = 'n',
+              cex.main = 1.5, xlab = '', ylab = '')
+      } else {
+        par(mar = c(3, 4, 0, 1))
+        plot(3, 3, type = 'n', xlim = c(1, snp_map[len, 2]),
+              ylim = c(2, 5), xaxt = 'n',
+              cex.main = 1.5, xlab = '', ylab = '')
+      }
+      for (an in 1:length(anns[, 1])) {
+        rect(anns[an, 3], 2, anns[an, 4], 5, col = alpha(anns[an, 5], 0.25), border = NA)
+      }
+      mtext(conds[which(names(conds) == a)], side = 3, line = -1.5, adj = 0.01)
+      arrows(1, mg, snp_map[len, 2], mg, length = 0)
+      for (p in 1:length(pl)) {
+        if (!is.na(pl[p])) {
+          arrows(snp_map[p, 2], mg, snp_map[p, 2], pl[p],
+                length = 0, col = alpha('black', 0.8), lwd = 1.5)
+        }
+      }
+      start <- anns[length(anns[, 1]), 3]
+      end <- anns[length(anns[, 1]), 4]
+      positions <- seq(0 - floor(start / 50) * 50, floor((end - start) / 50) * 50, 50)
+      if (a == args[3]) {
+        axis(side = 1, at = seq(start - floor(start / 50) * 50, floor(end / 50) * 50 + 10 * floor((end - start) / 50) + 1, 50),
+              labels = positions, cex.axis = 1)
+      } else {
+        axis(side = 1, at = seq(start - floor(start / 50) * 50, floor(end / 50) * 50 + 10 * floor((end - start) / 50) + 1, 50),
+              labels = rep('', length(positions)), cex.axis = 1)
+      }
+      if (pr == names(prom.pss)[6]) {
+        title(ylab = 'Modal expression (log10, a.u.)', line = 2.5, cex.lab = 1.2)
+      }
+    }
+  }
+
+dev.off()
+
+### plot lower part of Figure 4b (comparing differences in expression
+### relative to MG1655 between conditions in dctA promoter)
+cat(paste('Producing Figure 4b.2\n'))
+pdf(file = 'Figure_4b.2.pdf', width = 9, height = 3)
+  par(mfrow = c(1, 3),
+      las = 1)
+
+  all <- length(comp[[1]])
+  plot(comp[[1]], comp[[2]], pch = 16,
+        xlim = c(-1, 1), ylim = c(-1, 1),
+        col = alpha('black', 0.3), xlab = '', ylab = '')
+  title(xlab = 'Glucose', line = 2.5, cex.lab = 1.2)
+  title(ylab = 'Pyruvic acid', line = 2.5, cex.lab = 1.2)
+  abline(h = 0, col = 'blue', lty = 3)
+  abline(v = 0, col = 'blue', lty = 3)
+  both <- cbind(comp[[1]], comp[[2]])
+  tl <- both[, 2][which(both[, 1] < 0)]
+  tl <- tl[which(tl > 0)]
+  tr <- both[, 2][which(both[, 1] > 0)]
+  tr <- tr[which(tr > 0)]
+  bl <- both[, 2][which(both[, 1] < 0)]
+  bl <- bl[which(bl < 0)]
+  br <- both[, 2][which(both[, 1] > 0)]
+  br <- br[which(br < 0)]
+  text(x = -0.5, y = 0.5, labels = round(length(tl) / all, digits = 4))
+  text(x = 0.5, y = 0.5, labels = round(length(tr) / all, digits = 4))
+  text(x = -0.5, y = -0.5, labels = round(length(bl) / all, digits = 4))
+  text(x = 0.5, y = -0.5, labels = round(length(br) / all, digits = 4))
+
+  plot(comp[[1]], comp[[3]], pch = 16,
+        xlim = c(-1, 1), ylim = c(-1, 1),
+        col = alpha('black', 0.3), xlab = '', ylab = '',
+        main = parse(text = sprintf('italic(%s)', 'dctA')))
+  title(xlab = 'Glucose', line = 2.5, cex.lab = 1.2)
+  title(ylab = 'L-malic acid', line = 2.5, cex.lab = 1.2)
+  abline(h = 0, col = 'blue', lty = 3)
+  abline(v = 0, col = 'blue', lty = 3)
+  both <- cbind(comp[[1]], comp[[3]])
+  tl <- both[, 2][which(both[, 1] < 0)]
+  tl <- tl[which(tl > 0)]
+  tr <- both[, 2][which(both[, 1] > 0)]
+  tr <- tr[which(tr > 0)]
+  bl <- both[, 2][which(both[, 1] < 0)]
+  bl <- bl[which(bl < 0)]
+  br <- both[, 2][which(both[, 1] > 0)]
+  br <- br[which(br < 0)]
+  text(x = -0.5, y = 0.5, labels = round(length(tl) / all, digits = 4))
+  text(x = 0.5, y = 0.5, labels = round(length(tr) / all, digits = 4))
+  text(x = -0.5, y = -0.5, labels = round(length(bl) / all, digits = 4))
+  text(x = 0.5, y = -0.5, labels = round(length(br) / all, digits = 4))
+
+  plot(comp[[2]], comp[[3]], pch = 16,
+        xlim = c(-1, 1), ylim = c(-1, 1),
+        col = alpha('black', 0.3), xlab = '', ylab = '')
+  title(xlab = 'Pyruvic acid', line = 2.5, cex.lab = 1.2)
+  title(ylab = 'L-malic acid', line = 2.5, cex.lab = 1.2)
+  abline(h = 0, col = 'blue', lty = 3)
+  abline(v = 0, col = 'blue', lty = 3)
+  both <- cbind(comp[[2]], comp[[3]])
+  tl <- both[, 2][which(both[, 1] < 0)]
+  tl <- tl[which(tl > 0)]
+  tr <- both[, 2][which(both[, 1] > 0)]
+  tr <- tr[which(tr > 0)]
+  bl <- both[, 2][which(both[, 1] < 0)]
+  bl <- bl[which(bl < 0)]
+  br <- both[, 2][which(both[, 1] > 0)]
+  br <- br[which(br < 0)]
+  text(x = -0.5, y = 0.5, labels = round(length(tl) / all, digits = 4))
+  text(x = 0.5, y = 0.5, labels = round(length(tr) / all, digits = 4))
+  text(x = -0.5, y = -0.5, labels = round(length(bl) / all, digits = 4))
+  text(x = 0.5, y = -0.5, labels = round(length(br) / all, digits = 4))
+
+dev.off()
+
+### produce legend for Figure 4a (mapping the effect of random SNPs
+### relative to MG1655 variant to position within promoter sequence)
+cat(paste('Producing Figure 4a.3\n'))
+pdf(file = 'Figure_4a.3.pdf', width = 15, height = 3)
+
+  plot(NULL, axes = F, ann = F, xlim = c(0, 1), ylim = c(0, 1))
+  legend('top', legend = c('open reading frame', '-35 or -10 element', 'inducer TF', 'repressor TF', 'dual TF', 'repressor srRNA'),
+          pch = 15, col = c(alpha('yellow', 0.25), alpha('grey', 0.25), alpha('green', 0.25), alpha('red', 0.25), alpha('blue', 0.25), alpha('magenta', 0.25)),
+          title = 'Annotations', bg = 'white', cex = 1.3, horiz = T)
+
+dev.off()
+
+### sorting effect sizes of changes in expression
+### based on whether a SNP is inside (annTrue) or
+### or outside (annFalse) TF or RNAP binding site
+annTrue <- c()
+annFalse <- c()
+for (pr in names(prom.pss)) {
+  ### obtain data about SNP positions for each random variant
+  snp_map <- read.csv(paste0(prom.path[pr], '1SNPmap.csv'), header = T)
+  ### obtain info about promoter annotations (TF and so on)
+  anns <- read.csv(paste0(prom.path[pr], 'AnnotationsBasic.csv'), header = T)
+  ### extract info about all three environments
+  args <- offnames[which(grepl(pr, offnames))]
+  for (i in 1:3) {
+    a <- args[i]
+    arg <- paste0('_', unlist(strsplit(a, split = '_'))[2], '_')
+    if (i == 1) {
+      conds <- cond.ls[[which(endsWith(names(cond.ls), arg))]]
+    } else {
+      conds <- c(conds, cond.ls[[which(endsWith(names(cond.ls), arg))]])
+    }
+  }
+  ### exclude Glucose + Phenylalanine environment due to
+  ### a SNP in GFP gene in MG1655 variant of this promoter
+  if (grepl('Mtr', pr)) {
+    top <- 2
+  } else {
+    top <- 3
+  }
+  ### loop through all environments
+  ### (except for the exclusion mentioned above)
+  for (n in 1:top) {
+    a <- args[n]
+    ### save modal expression values for random variants and the MG1655 varaint
+    pl <- as.numeric(mut.ls[[a]][, 3][which(as.numeric(mut.ls[[a]][, 2]) == 1)])
+    mg <- as.numeric(mut.ls[[a]][length(mut.ls[[a]][, 3]), 3])
+    ### calculate fold changes in expression caused by individual SNPs
+    sizes <- pl / mg
+    ### loop through all random variants
+    for (snp in 1:length(snp_map[, 2])) {
+      hit <- 0
+      for (ann in rownames(anns)) {
+        if (grepl('TF', anns[ann, 2]) || grepl('sigma70', anns[ann, 2])) {
+          if (snp_map[snp, 2] >= anns[ann, 3] && snp_map[snp, 2] <= anns[ann, 4]) {
+            hit <- 1
+          }
+        }
+      }
+      ### if the variant has a SNP inside TF or RNAP binding site
+      ###  assing the expression fold change value to 'annTrue' variable
+      if (hit == 1) {
+        annTrue <- c(annTrue, sizes[snp])
+      ### if the SNP is outside of any TF or RNAP binding site
+      ### assign the expression fold change value to 'annFalse' variable
+      } else {
+        annFalse <- c(annFalse, sizes[snp])
+      }
+    }
+  }
+}
+### test for differences in the fold change sizes (Fligner-Kileen test of homogeneity of variances)
+test <- fligner.test(x = c(annTrue, annFalse), g = c(rep('T', length(annTrue)), rep('F', length(annFalse))))
+cat(paste('The p-value indicating significance in fold-changes in expression cause by random SNPs inside vs. outside of TF and RNAP biding sites:', signif(test$p.value, digits = 3), '\n'))
+
+##################################################
+################ VARIATION PLOTS #################
+#################### FIGURE 5 ####################
+##################################################
+
+### produce Figure 5 (comparing span of expression values
+### between segregating and random variants)
+cat(paste('Producing Figure 5\n'))
+pdf(file = 'Figure_5.pdf', width = 9, height = 7)
+  par(mfrow = c(3, 4),
+      las = 1)
+
+  ### loop through all promoters
+  for (pr in names(prom.pss)) {
+    if (pr == names(prom.pss)[1] || pr == names(prom.pss)[5] || pr == names(prom.pss)[9]) {
+      par(mar = c(3, 4, 2, 0))
+    } else if (pr == names(prom.pss)[2] || pr == names(prom.pss)[6] || pr == names(prom.pss)[10]) {
+      par(mar = c(3, 3, 2, 1))
+    } else if (pr == names(prom.pss)[3] || pr == names(prom.pss)[7]) {
+      par(mar = c(3, 2, 2, 2))
+    } else {
+      par(mar = c(3, 1, 2, 3))
+    }
+    ### extract info about all three environments
+    args <- offnames[which(grepl(pr, offnames))]
+    for (i in 1:3) {
+      a <- args[i]
+      arg <- paste0('_', unlist(strsplit(a, split = '_'))[2], '_')
+      if (i == 1) {
+        conds <- short.ls[[which(endsWith(names(short.ls), arg))]]
+      } else {
+        conds <- c(conds, short.ls[[which(endsWith(names(short.ls), arg))]])
+      }
+    }
+    ### loop through all environments
+    for (n in 1:3) {
+      a <- args[n]
+      ### get modal expression values for random variants
+      ### and use offset so they are comparable to seg. variants
+      mall <- mut.ls[[a]][, 3]
+      mall <- as.numeric(mall) - offset.m[a]
+      ### get modal expression value for seg. variants
+      sall <- seg.ls[[a]][, 1]
+      ### combine both variant groups to allow comparison of variances
+      dat <- c(sall, mall)
+      grp <- c(rep('A', length(sall)), rep('B', length(mall)))
+      mat <- cbind(dat, grp)
+      ### test for differences in variances (Fligner-Kileen test of homogeneity of variances)
+      test <- fligner.test(x = dat, g = grp)
+      ### plotting
+      if (a == args[1]) {
+        plot(jitter(rep(n + 0.2, length(mall)), factor = c(3:1)[n]), mall,
+              main = parse(text = sprintf('italic(%s)', prom.pss[pr])), col = alpha('red', 0.2),
+              xlim = c(0.5, 3.5), ylim = c(2, 5), pch = 16,
+              xlab = '', ylab = '', xaxt = 'n')
+      } else {
+        points(jitter(rep(n + 0.2, length(mall)), factor = c(3:1)[n]), mall,
+              pch = 16, col = alpha('red', 0.2))
+      }
+      points(jitter(rep(n - 0.2, (length(sall) - 1)), factor = c(3:1)[n]), sall[1:length(sall) - 1],
+            pch = 16, col = alpha('black', 0.2))
+      points(n - 0.2, sall[length(sall)],
+            pch = 16, col = alpha('green', 0.75))
+      text(x = n, y = 4.9, labels = signif(test$p.value, digit = 2))
+    }
+    axis(side = 1, at = c(1:3), labels = conds)
+    if (pr == names(prom.pss)[1] || pr == names(prom.pss)[5] || pr == names(prom.pss)[9]) {
+      title(ylab = 'Modal expression (log10, a.u.)', line = 2.5)
+    }
+  }
+  plot(NULL, axes = F, ann = F, xlim = c(0, 1), ylim = c(0, 1))
+  legend('top', legend = c('Mutagenesis', 'Segregating', 'MG1655'),
+          pch = 16, col = c(alpha('red', 0.2), alpha('black', 0.2), alpha('green', 0.75)),
+          title = 'Promoter set', cex = 1.5)
+
+dev.off()
+
+##################################################
+################## PLASTICITY  ###################
+########## FIGURE 6, SUPP FIGURE 3 & 5 ###########
+##################################################
+
+### save all modal expression values for aceB promoter
+### (all environments, both seg. and random variants)
+pr <- 'AceB'
+args <- offnames[which(grepl(pr, offnames))]
+mut1 <- mut.ls[[args[1]]][, 3]
+mut1 <- as.numeric(mut1) - offset.m[args[1]]
+mut2 <- mut.ls[[args[2]]][, 3]
+mut2 <- as.numeric(mut2) - offset.m[args[2]]
+mut3 <- mut.ls[[args[3]]][, 3]
+mut3 <- as.numeric(mut3) - offset.m[args[3]]
+seg1 <- seg.ls[[args[1]]][, 1]
+seg2 <- seg.ls[[args[2]]][, 1]
+seg3 <- seg.ls[[args[3]]][, 1]
+nseg <- length(seg1)
+for (i in 1:3) {
+  a <- args[i]
+  args[i] <- paste0('_', unlist(strsplit(a, split = '_'))[2], '_')
+  if (i == 1) {
+    conds <- cond.ls[[which(endsWith(names(cond.ls), args[i]))]]
+  } else {
+    conds <- c(conds, cond.ls[[which(endsWith(names(cond.ls), args[i]))]])
+  }
+}
+### set values for ylim and xlim in plotting
+lims <- c(2, 5)
+
+### produce Figure 6a (comparing expression values of aceB
+### promoter between pyruvic and L-malic acid)
+cat(paste('Producing Figure 6a\n'))
+pdf(file = "Figure_6a.pdf", width = 5, height = 5)
+  par(las = 1)
+
+  plot(mut2, mut3, pch = 16, col = alpha('red', 0.2),
+      ylim = c(2, 5), xlim = c(2, 5), xlab = '', ylab = '')
+  points(seg2[1:nseg - 1], seg3[1:nseg - 1],
+        pch = 16, col = alpha('black', 0.2))
+  points(seg2[nseg], seg3[nseg],
+        pch = 16, col = alpha('green', 0.75))
+  abline(0, 1, lty = 3, col = 'blue')
+  mtext(parse(text = sprintf('italic(%s)', prom.pss[pr])), side = 3, line = 0.5)
+  title(xlab = paste(conds[2]), line = 2)
+  title(ylab = paste(conds[3]), line = 2.5)
+
+dev.off()
+
+### produce Figure 6b (comparing expression values of aceB
+### promoter among all three environments -> 3D)
+cat(paste('Producing Figure 6b\n'))
+pdf(file = "Figure_6b.pdf", width = 5, height = 5)
+  par(las = 1)
+
+  source('~/Documents/addgrids3d.r')
+  sp <- scatterplot3d(mut1, mut2, mut3,
+        pch = '', grid = F, box = F,
+        xlab = conds[1], xlim = lims,
+        zlab = conds[2], ylim = lims,
+        ylab = conds[3], zlim = lims,
+        angle = 55)
+  addgrids3d(lims, lims, lims, grid = c('xy', 'xz', 'yz'), angle = 55)
+  sp$points(mut1, mut2, mut3,
+        col = alpha("red", 0.2), pch = 16)
+  sp$points3d(seg1[1:nseg - 1], seg2[1:nseg - 1], seg3[1:nseg - 1],
+        col = alpha("black", 0.2), pch = 16)
+  sp$points3d(seg1[nseg], seg2[nseg], seg3[nseg],
+        col = alpha("green", 0.75), pch = 16)
+  sp$points3d(x = lims, y = lims, z = lims, type = 'l', lty = 3, col = 'blue')
+  mtext(parse(text = sprintf('italic(%s)', prom.pss[pr])), side = 3, line = 0.5)
+
+dev.off()
+
+### produce Figure 6c (comparing plasticity in 3D
+### of all promoters between seg. and random variants)
+cat(paste('Producing Figure 6c\n'))
+pdf(file = "Figure_6c.pdf", width = 9, height = 5)
+  par(las = 1)
+
+  ### define points in 3D on an isospline to use when
+  ### calculating the distance of datapoints from the isospline
+  x1 <- rep(2, 3)
+  x2 <- rep(5, 3)
+
+  ### loop through all promoters
+  for (n in 1:length(names(prom.pss))) {
+    pr <- names(prom.pss)[n]
+    ### extract info about all three environments
+    args <- offnames[which(grepl(pr, offnames))]
+    a <- args[1]
+    b <- args[2]
+    c <- args[3]
+    ### get values from random variants and
+    ### correct them using offset values
+    mut1 <- mut.ls[[a]][, 3]
+    mut1 <- as.numeric(mut1) - offset.m[a]
+    mut2 <- mut.ls[[b]][, 3]
+    mut2 <- as.numeric(mut2) - offset.m[b]
+    mut3 <- mut.ls[[c]][, 3]
+    mut3 <- as.numeric(mut3) - offset.m[c]
+    mut <- c()
+    ### loop through each random variant and calculate
+    ### its minimal distance from isospline (= plasticity)
+    for (m in 1:length(mut1)) {
+      x0 <- c(mut1[m], mut2[m], mut3[m])
+      mut <- c(mut, dist3d(x0, x1, x2))
+    }
+    nmut <- length(mut)
+    ### get values from seg. variants
+    seg1 <- seg.ls[[a]][, 1]
+    seg2 <- seg.ls[[b]][, 1]
+    seg3 <- seg.ls[[c]][, 1]
+    seg <- c()
+    ### loop through each seg. variant and calculate
+    ### its minimal distance from isospline (= plasticity)
+    for(s in 1:length(seg1)) {
+      x0 <- c(seg1[s], seg2[s], seg3[s])
+      seg <- c(seg, dist3d(x0, x1, x2))
+    }
+    nseg <- length(seg)
+    ### test for differences in median plasticity between seg. and random variants
+    test <- wilcox.test(x = mut, y = seg, exact = F)
+    ### plotting
+    if (pr == names(prom.pss)[1]) {
+      plot(jitter(rep(n - 0.2, nseg - 1), factor = 4 / n), seg[1:nseg - 1],
+              xaxt = 'n', ylim = c(0, 2), xlim = c(0.5, 10.5),
+              col = alpha('black', 0.2), pch = 16, xlab = '', ylab = '')
+    } else {
+      points(jitter(rep(n - 0.2, nseg - 1), factor = 4 / n), seg[1:nseg - 1],
+              col = alpha('black', 0.2), pch = 16)
+    }
+    points(jitter(rep(n + 0.2, nmut), factor = 4 / n), mut,
+            col = alpha('red', 0.2), pch = 16)
+    points(n - 0.2, seg[nseg],
+            col = alpha('green', 0.75), pch = 16)
+    arrows(c(n - 0.3, n + 0.1), c(median(seg, na.rm = T), median(mut, na.rm = T)),
+          c(n - 0.1, n + 0.3), c(median(seg, na.rm = T), median(mut, na.rm = T)), length = 0)
+    text(x = n, y = 1.95, labels = signif(test$p.value, digits = 2))
+  }
+  axis(side = 1, at = c(1:10), labels = parse(text = sprintf('italic(%s)', prom.pss)))
+  title(ylab = 'Plasticity', line = 2.5)
+  legend('right', legend = c('Mutagenesis', 'Segregating', 'MG1655'),
+          pch = 16, col = c(alpha('red', 0.2), alpha('black', 0.2), alpha('green', 0.75)),
+          title = 'Promoter set')
+
+dev.off()
+
+### save all modal expression values for aceB promoter
+### (all environments, both seg. and random variants)
+pr <- 'DctA'
+args <- offnames[which(grepl(pr, offnames))]
+mut1 <- mut.ls[[args[1]]][, 3]
+mut1 <- as.numeric(mut1) - offset.m[args[1]]
+mut2 <- mut.ls[[args[2]]][, 3]
+mut2 <- as.numeric(mut2) - offset.m[args[2]]
+mut3 <- mut.ls[[args[3]]][, 3]
+mut3 <- as.numeric(mut3) - offset.m[args[3]]
+seg1 <- seg.ls[[args[1]]][, 1]
+seg2 <- seg.ls[[args[2]]][, 1]
+seg3 <- seg.ls[[args[3]]][, 1]
+nseg <- length(seg1)
+for (i in 1:3) {
+  a <- args[i]
+  args[i] <- paste0('_', unlist(strsplit(a, split = '_'))[2], '_')
+  if (i == 1) {
+    conds <- cond.ls[[which(endsWith(names(cond.ls), args[i]))]]
+  } else {
+    conds <- c(conds, cond.ls[[which(endsWith(names(cond.ls), args[i]))]])
+  }
+}
+
+### produce Figure 6d (comparing expression values of dctA
+### promoter between pyruvic and L-malic acid)
+cat(paste('Producing Figure 6d\n'))
+pdf(file = "Figure_6d.pdf", width = 5, height = 5)
+  par(las = 1)
+
+  plot(mut2, mut3, pch = 16, col = alpha('red', 0.2),
+      ylim = lims, xlim = lims, xlab = '', ylab = '')
+  points(seg2[1:nseg - 1], seg3[1:nseg - 1],
+        pch = 16, col = alpha('black', 0.2))
+  points(seg2[nseg], seg3[nseg],
+        pch = 16, col = alpha('green', 0.75))
+  abline(0, 1, lty = 3, col = 'blue')
+  mtext(parse(text = sprintf('italic(%s)', prom.pss[pr])), side = 3, line = 0.5)
+  title(xlab = conds[2], line = 2)
+  title(ylab = conds[3], line = 2.5)
+
+dev.off()
+
+### produce Figure 63 (comparing plasticity in 2D
+### of dctA promoter between seg. and random variants)
+cat(paste('Producing Figure 6e\n'))
+pdf(file = "Figure_6e.pdf", width = 5, height = 5)
+  par(las = 1)
+
+  ### calculate absolute differences in expression
+  ### between pairs of environments (= plasticity in 2D)
+  ### for both random and seg. variants in all combinations
+  m1 <- abs(mut1 - mut2)
+  m2 <- abs(mut2 - mut3)
+  m3 <- abs(mut3 - mut1)
+  nmut <- length(m1)
+  s1 <- abs(seg1 - seg2)
+  s2 <- abs(seg2 - seg3)
+  s3 <- abs(seg3 - seg1)
+  ### test for differences in 2D plasticity between seg. and random variants
+  t1 <- wilcox.test(x = m1, y = s1, exact = F)
+  t2 <- wilcox.test(x = m2, y = s2, exact = F)
+  t3 <- wilcox.test(x = m3, y = s3, exact = F)
+  t <- c(t1$p.value, t2$p.value, t3$p.value)
+  ### plotting
+  plot(jitter(rep(0.8, nseg - 1), factor = 3 / 1), s1[1:nseg - 1],
+          xaxt = 'n', ylim = c(0, 2), xlim = c(0.5, 3.5),
+          col = alpha('black', 0.2), pch = 16, xlab = '', ylab = '')
+  points(jitter(rep(1.8, nseg - 1), factor = 3 / 2), s2[1:nseg - 1],
+          col = alpha('black', 0.2), pch = 16)
+  points(jitter(rep(2.8, nseg - 1), factor = 3 / 3), s3[1:nseg - 1],
+          col = alpha('black', 0.2), pch = 16)
+  points(jitter(rep(1.2, nmut), factor = 3 / 1), m1,
+          col = alpha('red', 0.2), pch = 16)
+  points(jitter(rep(2.2, nmut), factor = 3 / 2), m2,
+          col = alpha('red', 0.2), pch = 16)
+  points(jitter(rep(3.2, nmut), factor = 3 / 3), m3,
+          col = alpha('red', 0.2), pch = 16)
+  points(c(0.8, 1.8, 2.8), c(s1[nseg], s2[nseg], s3[nseg]),
+          col = alpha('green', 0.75), pch = 16)
+  arrows(c(0.7, 1.1, 1.7, 2.1, 2.7, 3.1),
+        c(median(s1, na.rm = T), median(m1, na.rm = T), median(s2, na.rm = T), median(m2, na.rm = T), median(s3, na.rm = T), median(m3, na.rm = T)),
+        c(0.9, 1.3, 1.9, 2.3, 2.9, 3.3),
+        c(median(s1, na.rm = T), median(m1, na.rm = T), median(s2, na.rm = T), median(m2, na.rm = T), median(s3, na.rm = T), median(m3, na.rm = T)), length = 0)
+  for (n in 1:3) {
+    text(x = n, y = 1.95, labels = signif(t[n], digits = 2))
+  }
+  for (i in 1:3) {
+    a <- args[i]
+    args[i] <- paste0('_', unlist(strsplit(a, split = '_'))[2], '_')
+    if (i == 1) {
+      conds <- short.ls[[which(endsWith(names(short.ls), args[i]))]]
+    } else {
+      conds <- c(conds, short.ls[[which(endsWith(names(short.ls), args[i]))]])
+    }
+  }
+  comps <- c(paste0(conds[1], ':', conds[2]),
+              paste0(conds[2], ':', conds[3]),
+              paste0(conds[3], ':', conds[1]))
+  axis(side = 1, at = c(1:3), labels = comps)
+  mtext(parse(text = sprintf('italic(%s)', prom.pss[pr])), side = 3, line = 0.5)
+  title(ylab = 'Plasticity (in 2D)', line = 2.5)
+
+dev.off()
+
+### produce Supplementary Figure 3 (comparing expression values
+### of all promoters between all pairs of conditions)
+cat(paste('Producing Supplementary Figure 3\n'))
+pdf(file = "SupplementaryFigure_3.pdf", width = 12, height = 12)
+  par(mfrow = c(5, 6),
+      las = 1,
+      par(mar = c(4, 3.5, 2, 0.5)))
+
+  for (pr in names(prom.pss)) {
+    args <- offnames[which(grepl(pr, offnames))]
+    for (n in 1:3) {
+      a <- args[n]
+      if (n < 3) {
+        m <- n + 1
+        b <- args[m]
+      } else {
+        m <- 1
+        b <- args[m]
+      }
+      mut1 <- mut.ls[[a]][, 3]
+      mut1 <- as.numeric(mut1) - offset.m[a]
+      mut2 <- mut.ls[[b]][, 3]
+      mut2 <- as.numeric(mut2) - offset.m[b]
+      seg1 <- seg.ls[[a]][, 1]
+      seg2 <- seg.ls[[b]][, 1]
+      nseg <- length(seg1)
+      plot(mut1, mut2, pch = 16, col = alpha('red', 0.2),
+          ylim = c(2, 5), xlim = c(2, 5), xlab = '', ylab = '')
+      points(seg1[1:nseg - 1], seg2[1:nseg - 1],
+            pch = 16, col = alpha('black', 0.2))
+      points(seg1[nseg], seg2[nseg],
+            pch = 16, col = alpha('green', 0.75))
+      for (i in 1:3) {
+        a <- args[i]
+        arg <- paste0('_', unlist(strsplit(a, split = '_'))[2], '_')
+        if (i == 1) {
+          conds <- cond.ls[[which(endsWith(names(cond.ls), arg))]]
+        } else {
+          conds <- c(conds, cond.ls[[which(endsWith(names(cond.ls), arg))]])
+        }
+      }
+      abline(0, 1, lty = 3, col = 'blue')
+      mtext(parse(text = sprintf('italic(%s)', prom.pss[pr])), side = 3, line = 0.5)
+      title(xlab = conds[n], line = 2)
+      title(ylab = conds[m], line = 2.5)
+    }
+  }
+  legend('topleft', legend = c('Mutagenesis', 'Segregating', 'MG1655'),
+          pch = 16, col = c(alpha('red', 0.2), alpha('black', 0.2), alpha('green', 0.75)),
+          title = 'Promoter set')
+
+dev.off()
+
+### produce Supplementary Figure 5 (checking whether
+### lower number of random lacZ variants could result
+### in non-significant changes in plasticity between
+### seg. and random variants)
+cat(paste('Producing Supplementary Figure 5\n'))
+pdf(file = "SupplementaryFigure_5.pdf", width = 9, height = 5)
+  par(las = 1,
+      mar = c(5.1, 5.1, 4.1, 2.1))
+
+  ### loop through all promoters
+  for (n in 1:length(names(prom.pss))) {
+    pr <- names(prom.pss)[n]
+    ### extract info about all three environments
+    args <- offnames[which(grepl(pr, offnames))]
+    a <- args[1]
+    b <- args[2]
+    c <- args[3]
+    ### get values from random variants and
+    ### correct them using offset values
+    mut1 <- mut.ls[[a]][, 3]
+    mut1 <- as.numeric(mut1) - offset.m[a]
+    mut2 <- mut.ls[[b]][, 3]
+    mut2 <- as.numeric(mut2) - offset.m[b]
+    mut3 <- mut.ls[[c]][, 3]
+    mut3 <- as.numeric(mut3) - offset.m[c]
+    mut <- c()
+    ### loop through each random variant and calculate
+    ### its minimal distance from isospline (= plasticity)
+    for (m in 1:length(mut1)) {
+      x0 <- c(mut1[m], mut2[m], mut3[m])
+      mut <- c(mut, dist3d(x0, x1, x2))
+    }
+    ### get values from seg. variants
+    seg1 <- seg.ls[[a]][, 1]
+    seg2 <- seg.ls[[b]][, 1]
+    seg3 <- seg.ls[[c]][, 1]
+    seg <- c()
+    ### loop through each seg. variant and calculate
+    ### its minimal distance from isospline (= plasticity)
+    for(s in 1:length(seg1)) {
+      x0 <- c(seg1[s], seg2[s], seg3[s])
+      seg <- c(seg, dist3d(x0, x1, x2))
+    }
+    tests <- c()
+    ### boothstrap 1000 times while subsampling random
+    ### variants to 29 and testing significance of
+    ### difference between seg. and subsampled random variants
+    for (sub in 1:1000) {
+      sample <- sample(mut, size = 29, replace = F)
+      test <- wilcox.test(x = sample, y = seg, exact = F)
+      tests <- c(tests, test$p.value)
+    }
+    ### plotting
+    if (pr == names(prom.pss)[1]) {
+      plot(jitter(rep(n, 1000), factor = 10 / n), tests,
+              xaxt = 'n', xlim = c(0.5, 10.5), ylim = c(1*10^-10, 1), log = 'y',
+              col = alpha('blue', 0.2), pch = 16, xlab = '', ylab = '', cex = 0.3)
+    } else {
+      points(jitter(rep(n, 1000), factor = 10 / n), tests,
+              col = alpha('blue', 0.2), pch = 16, cex = 0.3)
+    }
+    abline(h = 0.05, lty = 2, col = 'red')
+    abline(h = 0.01, lty = 2, col = 'red')
+    abline(h = 0.001, lty = 2, col = 'red')
+    abline(h = 0.0001, lty = 2, col = 'red')
+  }
+  axis(side = 1, at = c(1:10), labels = parse(text = sprintf('italic(%s)', prom.pss)))
+  title(ylab = 'P-value', line = 3.5)
+
+dev.off()
+
+##################################################
+################ MEAN-NOISE PLOTS ################
+############ SUPP FIGURE 4 & FIGURE 7 ############
+##################################################
+
+### define colors for ploting and variable 'dev'
+### to save deviations in transcriptional noise in it
+cols <- c('red', 'blue', 'gold')
+dev <- list()
+
+### produce Supplementary Figure 4 (fitting smooth spline
+### to transcriptional noise and modal expression data)
+cat(paste('Producing Supplementary Figure 4\n'))
+pdf(file = 'SupplementaryFigure_4.pdf', width = 9, height = 7)
+  par(mfrow = c(3, 4),
+      las = 1)
+
+  ### loop through all promoters
+  for (pr in names(prom.pss)) {
+    if (pr == names(prom.pss)[1] || pr == names(prom.pss)[5] || pr == names(prom.pss)[9]) {
+      par(mar = c(3.5, 5, 1.5, 0))
+    } else if (pr == names(prom.pss)[2] || pr == names(prom.pss)[6] || pr == names(prom.pss)[10]) {
+      par(mar = c(3.5, 4, 1.5, 1))
+    } else if (pr == names(prom.pss)[3] || pr == names(prom.pss)[7]) {
+      par(mar = c(3.5, 3, 1.5, 2))
+    } else {
+      par(mar = c(3.5, 2, 1.5, 3))
+    }
+    ### extract info about all three environments
+    args <- offnames[which(grepl(pr, offnames))]
+    names(cols) <- args
+    ### loop through all the environments
+    for (a in args) {
+      ### get and correct expression level and
+      ### noise values for random variants
+      mut <- mut.ls[[a]][, 3:4]
+      mut[, 1] <- as.numeric(mut[, 1]) - offset.m[a]
+      mut[, 2] <- as.numeric(mut[, 2]) - offset.n[a]
+      ### check for NAs in expression level and noise
+      ex1 <- as.numeric(rownames(mut)[which(is.na(mut[, 1]))])
+      ex2 <- as.numeric(rownames(mut)[which(is.na(mut[, 2]))])
+      ### collapse info about NAs for variants if it
+      ### is present in both expression and noise
+      ex <- ex1
+      if (length(ex2) > 0) {
+        for (e2 in ex2) {
+          hit <- 0
+          for (e1 in ex) {
+            if (e1 == e2) {
+              hit <- 1
+            }
+          }
+          if (hit == 0) {
+            ex <- c(ex, e2)
+          }
+        }
+      }
+      ex <- sort(ex)
+      ### create expression and noise matrix without
+      ### NAs for smooth spline calculation
+      mut <- mut[complete.cases(mut),]
+      ### calculate the smooth spline
+      li <- smooth.spline(c(mut[, 1], seg.ls[[a]][, 1]), c(mut[, 2], seg.ls[[a]][, 2]), lambda = 0.01)
+      ### predict noise levels for each observed expression
+      ### level from the calculated smooth spline
+      fit <- predict(li, c(mut[, 1], seg.ls[[a]][, 1]))
+      devs <- c(mut[, 2], seg.ls[[a]][, 2]) - fit$y
+      ### add NAs into the vector of noise deviations
+      ### into the same places they were removed from
+      ### before smooth spline calculation
+      if (length(ex) > 0) {
+        for (e in ex) {
+          hold <- devs
+          devs <- c(hold[1:(e - 1)], NA, hold[e:length(hold)])
+        }
+      }
+      dev[[a]] <- devs
+      ### plotting
+      if (a == args[1]) {
+        plot(mut[, 1], mut[, 2], pch = 16,
+              col = alpha(cols[a], 0.3), xlim = c(2, 5), ylim = c(0.02, 0.5),
+              xlab = '', ylab = '', log = 'y',
+              main = parse(text = sprintf('italic(%s)', prom.pss[pr])))
+      } else {
+        points(mut[, 1], mut[, 2], pch = 16, col = alpha(cols[a], 0.3))
+      }
+      points(seg.ls[[a]][, 1], seg.ls[[a]][, 2],
+            pch = 21, bg = alpha(cols[a], 0.3), col = 'black')
+      lines(predict(li), col = cols[a], pch = '.')
+    }
+    for (i in 1:3) {
+      a <- args[i]
+      args[i] <- paste0('_', unlist(strsplit(a, split = '_'))[2], '_')
+      if (i == 1) {
+        conds <- cond.ls[[which(endsWith(names(cond.ls), args[i]))]]
+      } else {
+        conds <- c(conds, cond.ls[[which(endsWith(names(cond.ls), args[i]))]])
+      }
+    }
+    if (pr == names(prom.pss)[7] || pr == names(prom.pss)[8] || pr == names(prom.pss)[9] || pr == names(prom.pss)[10]) {
+      title(xlab = 'Modal expression (log10, a.u.)', line = 2)
+    }
+    if (pr == names(prom.pss)[1] || pr == names(prom.pss)[5] || pr == names(prom.pss)[9]) {
+      title(ylab = 'Noise (std/Mo)', line = 3)
+    }
+    legend('topright', legend = conds, pch = 16,
+            col = c(alpha(cols[1], 0.3), alpha(cols[2], 0.3), alpha(cols[3], 0.3)),
+            cex = 0.9, title = 'Condition')
+  }
+  plot(NULL, axes = F, ann = F, xlim = c(0, 1), ylim = c(0, 1))
+  legend('topleft', legend = c('Mutagenesis', 'Segregating'),
+          pch = 21, cex = 1.5, title = "Promoter set",
+          col = c('red', 'black'), pt.bg = c(alpha('red', 0.3), alpha('red', 0.3)))
+
+dev.off()
+
+### produce Figure 7a (comparing noise deviations
+### between seg. and random variants)
+cat(paste('Producing Figure 7a\n'))
+pdf(file = "Figure_7a.pdf", width = 9, height = 7)
+  par(mfrow = c(3, 4),
+      las = 1)
+
+  ### loop through all promoters
+  for (pr in names(prom.pss)) {
+    if (pr == names(prom.pss)[1] || pr == names(prom.pss)[5] || pr == names(prom.pss)[9]) {
+      par(mar = c(3, 5, 2, 0))
+    } else if (pr == names(prom.pss)[2] || pr == names(prom.pss)[6] || pr == names(prom.pss)[10]) {
+      par(mar = c(3, 4, 2, 1))
+    } else if (pr == names(prom.pss)[3] || pr == names(prom.pss)[7]) {
+      par(mar = c(3, 3, 2, 2))
+    } else {
+      par(mar = c(3, 2, 2, 3))
+    }
+    ### extract info about all three environments
+    args <- offnames[which(grepl(pr, offnames))]
+    for (i in 1:3) {
+      a <- args[i]
+      arg <- paste0('_', unlist(strsplit(a, split = '_'))[2], '_')
+      if (i == 1) {
+        conds <- short.ls[[which(endsWith(names(short.ls), arg))]]
+      } else {
+        conds <- c(conds, short.ls[[which(endsWith(names(short.ls), arg))]])
+      }
+    }
+    ### loop through each environment
+    for (n in 1:3) {
+      a <- args[n]
+      ### obtain noise deviation values for
+      ### random and seg. variants
+      nmut <- length(mut.ls[[a]][, 3])
+      mut <- dev[[a]][1:nmut]
+      seg <- dev[[a]][nmut + 1:length(dev[[a]])]
+      seg <- seg[complete.cases(seg)]
+      nseg <- length(seg)
+      ### test the significance of difference in noise
+      ### deviation between seg. and random variants
+      test <- wilcox.test(x = mut, y = seg, exact = F)
+      ### plotting
+      if (a == args[1]) {
+        plot(jitter(rep(n - 0.2, nseg - 1), factor = c(3:1)[n]), seg[1:nseg - 1],
+                main = parse(text = sprintf('italic(%s)', prom.pss[pr])),
+                xaxt = "n", xlim = c(0.5, 3.5), ylim = c(-0.025, 0.025),#ylim = c(-0.03, 0.06),#
+                col = alpha('black', 0.2), pch = 16, xlab = '', ylab = '')
+      } else {
+        points(jitter(rep(n - 0.2, nseg - 1), factor = c(3:1)[n]), seg[1:nseg - 1],
+                col = alpha('black', 0.2), pch = 16)
+      }
+      points(jitter(rep(n + 0.2, nmut), factor = c(3:1)[n]), mut,
+              col = alpha('red', 0.2), pch = 16)
+      points(n - 0.2, seg[nseg],
+              col = alpha('green', 0.75), pch = 16)
+      arrows(c(n - 0.3, n + 0.1), c(median(seg, na.rm = T), median(mut, na.rm = T)),
+            c(n - 0.1, n + 0.3), c(median(seg, na.rm = T), median(mut, na.rm = T)), length = 0)
+      text(x = n, y = 0.023, labels = signif(test$p.value, digits = 2))
+    }
+    axis(side = 1, at = c(1:3), labels = conds)
+    if (pr == names(prom.pss)[1] || pr == names(prom.pss)[5] || pr == names(prom.pss)[9]) {
+      title(ylab = 'Noise deviation (stdev / mode)', line = 3.5)
+    }
+  }
+  plot(NULL, axes = F, ann = F, xlim = c(0, 1), ylim = c(0, 1))
+  legend('topleft', legend = c('Mutagenesis', 'Segregating', 'MG1655'),
+          pch = 16, col = c(alpha('red', 0.2), alpha('black', 0.2), alpha('green', 0.75)),
+          title = 'Promoter set', cex = 1.5)
+
+dev.off()
+
+### produce Figure 7b (comparing noise deviations
+### in aceB between seg. and random variants)
+cat(paste('Producing Figure 7b\n'))
+pdf(file = "Figure_7b.pdf", width = 5, height = 5)
+  par(las = 1)
+
+  pr <- 'AceB'
+  args <- offnames[which(grepl(pr, offnames))]
+  for (i in 1:3) {
+    a <- args[i]
+    arg <- paste0('_', unlist(strsplit(a, split = '_'))[2], '_')
+    if (i == 1) {
+      conds <- short.ls[[which(endsWith(names(short.ls), arg))]]
+    } else {
+      conds <- c(conds, short.ls[[which(endsWith(names(short.ls), arg))]])
+    }
+  }
+  for (n in 1:3) {
+    a <- args[n]
+    nmut <- length(mut.ls[[a]][, 3])
+    mut <- dev[[a]][1:nmut]
+    seg <- dev[[a]][nmut + 1:length(dev[[a]])]
+    seg <- seg[complete.cases(seg)]
+    nseg <- length(seg)
+    test <- wilcox.test(x = mut, y = seg, exact = F)
+    if (a == args[1]) {
+      plot(jitter(rep(n - 0.2, nseg - 1), factor = c(3:1)[n]), seg[1:nseg - 1],
+              main = parse(text = sprintf('italic(%s)', prom.pss[pr])),
+              xaxt = "n", xlim = c(0.5, 3.5), ylim = c(-0.075, 0.3),
+              col = alpha('black', 0.2), pch = 16, xlab = '', ylab = '')
+    } else {
+      points(jitter(rep(n - 0.2, nseg - 1), factor = c(3:1)[n]), seg[1:nseg - 1],
+              col = alpha('black', 0.2), pch = 16)
+    }
+    points(jitter(rep(n + 0.2, nmut), factor = c(3:1)[n]), mut,
+            col = alpha('red', 0.2), pch = 16)
+    points(n - 0.2, seg[nseg],
+            col = alpha('green', 0.75), pch = 16)
+    arrows(c(n - 0.3, n + 0.1), c(median(seg, na.rm = T), median(mut, na.rm = T)),
+          c(n - 0.1, n + 0.3), c(median(seg, na.rm = T), median(mut, na.rm = T)), length = 0)
+    text(x = n, y = 0.285, labels = signif(test$p.value, digits = 2))
+  }
+  axis(side = 1, at = c(1:3), labels = conds)
+  title(ylab = 'Noise deviation (stdev / mode)', line = 2.5)
+
+dev.off()
+
+### produce Figure 7c (comparing noise deviations
+### in purA between seg. and random variants)
+cat(paste('Producing Figure 7c\n'))
+pdf(file = "Figure_7c.pdf", width = 5, height = 5)
+  par(las = 1)
+
+  pr <- 'PurA'
+  args <- offnames[which(grepl(pr, offnames))]
+  for (i in 1:3) {
+    a <- args[i]
+    arg <- paste0('_', unlist(strsplit(a, split = '_'))[2], '_')
+    if (i == 1) {
+      conds <- short.ls[[which(endsWith(names(short.ls), arg))]]
+    } else {
+      conds <- c(conds, short.ls[[which(endsWith(names(short.ls), arg))]])
+    }
+  }
+  for (n in 1:3) {
+    a <- args[n]
+    nmut <- length(mut.ls[[a]][, 3])
+    mut <- dev[[a]][1:nmut]
+    seg <- dev[[a]][nmut + 1:length(dev[[a]])]
+    seg <- seg[complete.cases(seg)]
+    nseg <- length(seg)
+    test <- wilcox.test(x = mut, y = seg, exact = F)
+    if (a == args[1]) {
+      plot(jitter(rep(n - 0.2, nseg - 1), factor = c(3:1)[n]), seg[1:nseg - 1],
+              main = parse(text = sprintf('italic(%s)', prom.pss[pr])),
+              xaxt = "n", xlim = c(0.5, 3.5), ylim = c(-0.025, 0.09),
+              col = alpha('black', 0.2), pch = 16, xlab = '', ylab = '')
+    } else {
+      points(jitter(rep(n - 0.2, nseg - 1), factor = c(3:1)[n]), seg[1:nseg - 1],
+              col = alpha('black', 0.2), pch = 16)
+    }
+    points(jitter(rep(n + 0.2, nmut), factor = c(3:1)[n]), mut,
+            col = alpha('red', 0.2), pch = 16)
+    points(n - 0.2, seg[nseg],
+            col = alpha('green', 0.75), pch = 16)
+    arrows(c(n - 0.3, n + 0.1), c(median(seg, na.rm = T), median(mut, na.rm = T)),
+          c(n - 0.1, n + 0.3), c(median(seg, na.rm = T), median(mut, na.rm = T)), length = 0)
+    text(x = n, y = 0.085, labels = signif(test$p.value, digits = 2))
+  }
+  axis(side = 1, at = c(1:3), labels = conds)
+  title(ylab = 'Noise deviation (stdev / mode)', line = 3)
+
+dev.off()
+
+##################################################
+################### Z-SCORES #####################
+################### FIGURE 8 #####################
+##################################################
+
+prom.tests <- list()
+### produce Figure 8 (comparing summed z-scores
+### between seg. and random variants)
+cat(paste('Producing Figure 8\n'))
+pdf(file = 'Figure_8.pdf', width = 9, height = 5)
+par(fig = c(0, 1, 0, 1),
+    las = 1)
+
+    ### loop through all promoters
+    for (n in 1:length(names(prom.pss))) {
+      pr <- names(prom.pss)[n]
+      ### extract info about all three environments
+      args <- offnames[which(grepl(pr, offnames))]
+      a <- args[1]
+      b <- args[2]
+      c <- args[3]
+      ### get and correct expression values
+      ### from random variants
+      mut1 <- mut.ls[[a]][, 3]
+      mut1 <- as.numeric(mut1) - offset.m[a]
+      mut2 <- mut.ls[[b]][, 3]
+      mut2 <- as.numeric(mut2) - offset.m[b]
+      mut3 <- mut.ls[[c]][, 3]
+      mut3 <- as.numeric(mut3) - offset.m[c]
+      mut <- c()
+      ### calculate 3D plasticity for random variants
+      for (m in 1:length(mut1)) {
+        x0 <- c(mut1[m], mut2[m], mut3[m])
+        mut <- c(mut, dist3d(x0, x1, x2))
+      }
+      ### get expression values from seg. variants
+      seg1 <- seg.ls[[a]][, 1]
+      seg2 <- seg.ls[[b]][, 1]
+      seg3 <- seg.ls[[c]][, 1]
+      seg <- c()
+      ### calculate 3D plasticity for seg. variants
+      for (s in 1:length(seg1)) {
+        x0 <- c(seg1[s], seg2[s], seg3[s])
+        seg <- c(seg, dist3d(x0, x1, x2))
+      }
+      ### get noise deviations for both seg. and random variants
+      nmut <- length(mut.ls[[a]][, 3][which(complete.cases(mut.ls[[a]]))])
+      mutN1 <- dev[[a]][1:nmut]
+      segN1 <- dev[[a]][nmut + 1:length(dev[[a]])]
+      segN1 <- segN1[complete.cases(segN1)]
+      nmut <- length(mut.ls[[b]][, 3][which(complete.cases(mut.ls[[b]]))])
+      mutN2 <- dev[[b]][1:nmut]
+      segN2 <- dev[[b]][nmut + 1:length(dev[[b]])]
+      segN2 <- segN2[complete.cases(segN2)]
+      nmut <- length(mut.ls[[c]][, 3][which(complete.cases(mut.ls[[c]]))])
+      mutN3 <- dev[[c]][1:nmut]
+      segN3 <- dev[[c]][nmut + 1:length(dev[[c]])]
+      segN3 <- segN3[complete.cases(segN3)]
+      ### calculate expression z-scores for 1st environment
+      seg.sd <- sd(seg1)
+      seg.md <- mean(seg1)
+      segZ1 <- abs(seg1 - seg.md) / seg.sd
+      mutZ1 <- abs(mut1 - seg.md) / seg.sd
+      ### calculate expression z-scores for 2nd environment
+      seg.sd <- sd(seg2)
+      seg.md <- mean(seg2)
+      segZ2 <- abs(seg2 - seg.md) / seg.sd
+      mutZ2 <- abs(mut2 - seg.md) / seg.sd
+      ### calculate expression z-scores for 3rd environment
+      seg.sd <- sd(seg3)
+      seg.md <- mean(seg3)
+      segZ3 <- abs(seg3 - seg.md) / seg.sd
+      mutZ3 <- abs(mut3 - seg.md) / seg.sd
+      ### calculate plasticity z-scores
+      seg.sd <- sd(seg)
+      seg.md <- mean(seg)
+      segZ4 <- abs(seg - seg.md) / seg.sd
+      mutZ4 <- abs(mut - seg.md) / seg.sd
+      ### calculate noise deviation z-scores for 1st environment
+      seg.sd <- sd(segN1)
+      seg.md <- mean(segN1)
+      segZ5 <- abs(segN1 - seg.md) / seg.sd
+      mutZ5 <- abs(mutN1 - seg.md) / seg.sd
+      ### calculate noise deviation z-scores for 2nd environment
+      seg.sd <- sd(segN2)
+      seg.md <- mean(segN2)
+      segZ6 <- abs(segN2 - seg.md) / seg.sd
+      mutZ6 <- abs(mutN2 - seg.md) / seg.sd
+      ### calculate noise deviation z-scores for 3rd environment
+      seg.sd <- sd(segN3)
+      seg.md <- mean(segN3)
+      segZ7 <- abs(segN3 - seg.md) / seg.sd
+      mutZ7 <- abs(mutN3 - seg.md) / seg.sd
+      ### calculate summed z-scores for seg. variants
+      segZ <- vector()
+      for (i in 1:length(segZ1)) {
+        segZ <- c(segZ, (segZ1[i] + segZ2[i] + segZ3[i] + segZ4[i] + segZ5[i] + segZ6[i] + segZ7[i]))
+      }
+      nseg <- length(segZ)
+      ### calculate summed z-scores for random variants
+      mutZ <- vector()
+      for (i in 1:length(mutZ1)) {
+        mutZ <- c(mutZ, (mutZ1[i] + mutZ2[i] + mutZ3[i] + mutZ4[i] + mutZ5[i] + mutZ6[i] + mutZ7[i]))
+      }
+      nmut <- length(mutZ)
+      ### test the significance of differences in summed
+      ### z-scores between seg. and random variants
+      test <- wilcox.test(x = mutZ, y = segZ, exact = F)
+      ### plotting
+      if (n == 1) {
+        plot(jitter(rep(n - 0.2, nseg - 1), factor = 4 / n), segZ[1:nseg - 1],
+                xaxt = 'n', ylim = c(0, 150), xlim = c(0.5, 10.5),
+                col = alpha('black', 0.2), pch = 16, xlab = '', ylab = '')
+      } else {
+        points(jitter(rep(n - 0.2, nseg - 1), factor = 4 / n), segZ[1:nseg - 1],
+                col = alpha('black', 0.2), pch = 16)
+      }
+      points(jitter(rep(n + 0.2, nmut), factor = 4 / n), mutZ,
+              col = alpha('red', 0.2), pch = 16)
+      points(n - 0.2, segZ[nseg],
+              col = alpha('green', 0.75), pch = 16)
+      arrows(c(n - 0.3, n + 0.1), c(median(segZ, na.rm = T), median(mutZ, na.rm = T)),
+            c(n - 0.1, n + 0.3), c(median(segZ, na.rm = T), median(mutZ, na.rm = T)), length = 0)
+      text(x = n, y = 150, labels = signif(test$p.value, digits = 2))
+    }
+    axis(side = 1, at = c(1:10), labels = parse(text = sprintf('italic(%s)', prom.pss)))
+    title(ylab = 'Sum of absolute z-scores', line = 2.5)
+    legend(0.1, 70, legend = c('Mutagenesis', 'Segregating', 'MG1655'),
+            pch = 16, col = c(alpha('red', 0.2), alpha('black', 0.2), alpha('green', 0.75)),
+            title = 'Promoter set', cex = 0.75)
+
+### plotting inset
+par(fig = c(0.05, 0.35, 0.37, 0.94),
+    new = TRUE)
+  for (i in 1:length(names(prom.pss))) {
+    pr <- names(prom.pss)[i]
+    if (grepl('AceB', pr) || grepl('PurA', pr)) {
+      args <- offnames[which(grepl(pr, offnames))]
+      a <- args[1]
+      b <- args[2]
+      c <- args[3]
+      mut1 <- mut.ls[[a]][, 3]
+      mut1 <- as.numeric(mut1) - offset.m[a]
+      mut2 <- mut.ls[[b]][, 3]
+      mut2 <- as.numeric(mut2) - offset.m[b]
+      mut3 <- mut.ls[[c]][, 3]
+      mut3 <- as.numeric(mut3) - offset.m[c]
+      mut <- c()
+      x1 <- rep(2, 3)
+      x2 <- rep(5, 3)
+      for (m in 1:length(mut1)) {
+        x0 <- c(mut1[m], mut2[m], mut3[m])
+        mut <- c(mut, dist3d(x0, x1, x2))
+      }
+
+      seg1 <- seg.ls[[a]][, 1]
+      seg2 <- seg.ls[[b]][, 1]
+      seg3 <- seg.ls[[c]][, 1]
+      seg <- c()
+      for (s in 1:length(seg1)) {
+        x0 <- c(seg1[s], seg2[s], seg3[s])
+        seg <- c(seg, dist3d(x0, x1, x2))
+      }
+
+      nmut <- length(mut.ls[[a]][, 3][which(complete.cases(mut.ls[[a]]))])
+      mutN1 <- dev[[a]][1:nmut]
+      segN1 <- dev[[a]][nmut + 1:length(dev[[a]])]
+      segN1 <- segN1[complete.cases(segN1)]
+      nmut <- length(mut.ls[[b]][, 3][which(complete.cases(mut.ls[[b]]))])
+      mutN2 <- dev[[b]][1:nmut]
+      segN2 <- dev[[b]][nmut + 1:length(dev[[b]])]
+      segN2 <- segN2[complete.cases(segN2)]
+      nmut <- length(mut.ls[[c]][, 3][which(complete.cases(mut.ls[[c]]))])
+      mutN3 <- dev[[c]][1:nmut]
+      segN3 <- dev[[c]][nmut + 1:length(dev[[c]])]
+      segN3 <- segN3[complete.cases(segN3)]
+
+      seg.sd <- sd(seg1)
+      seg.md <- mean(seg1)
+      segZ1 <- abs(seg1 - seg.md) / seg.sd
+      mutZ1 <- abs(mut1 - seg.md) / seg.sd
+
+      seg.sd <- sd(seg2)
+      seg.md <- mean(seg2)
+      segZ2 <- abs(seg2 - seg.md) / seg.sd
+      mutZ2 <- abs(mut2 - seg.md) / seg.sd
+
+      seg.sd <- sd(seg3)
+      seg.md <- mean(seg3)
+      segZ3 <- abs(seg3 - seg.md) / seg.sd
+      mutZ3 <- abs(mut3 - seg.md) / seg.sd
+
+      seg.sd <- sd(seg)
+      seg.md <- mean(seg)
+      segZ4 <- abs(seg - seg.md) / seg.sd
+      mutZ4 <- abs(mut - seg.md) / seg.sd
+
+      seg.sd <- sd(segN1)
+      seg.md <- mean(segN1)
+      segZ5 <- abs(segN1 - seg.md) / seg.sd
+      mutZ5 <- abs(mutN1 - seg.md) / seg.sd
+
+      seg.sd <- sd(segN2)
+      seg.md <- mean(segN2)
+      segZ6 <- abs(segN2 - seg.md) / seg.sd
+      mutZ6 <- abs(mutN2 - seg.md) / seg.sd
+
+      seg.sd <- sd(segN3)
+      seg.md <- mean(segN3)
+      segZ7 <- abs(segN3 - seg.md) / seg.sd
+      mutZ7 <- abs(mutN3 - seg.md) / seg.sd
+
+      segZ <- vector()
+      for (i in 1:length(segZ1)) {
+        segZ <- c(segZ, (segZ1[i] + segZ2[i] + segZ3[i] + segZ4[i] + segZ5[i] + segZ6[i] + segZ7[i]))
+      }
+      nseg <- length(segZ)
+
+      mutZ <- vector()
+      for (i in 1:length(mutZ1)) {
+        mutZ <- c(mutZ, (mutZ1[i] + mutZ2[i] + mutZ3[i] + mutZ4[i] + mutZ5[i] + mutZ6[i] + mutZ7[i]))
+      }
+      nmut <- length(mutZ)
+
+      if (grepl('AceB', pr)) {
+        n <- 1
+        plot(jitter(rep(n - 0.2, nseg - 1), factor = 4 / n), segZ[1:nseg - 1],
+                xaxt = 'n', ylim = c(0, 390), xlim = c(0.5, 2.5), cex.axis = 0.7,
+                col = alpha('black', 0.2), pch = 16, xlab = '', ylab = '', cex = 0.5)
+      } else {
+        n <- 2
+        points(jitter(rep(n - 0.2, nseg - 1), factor = 4 / n), segZ[1:nseg - 1],
+                col = alpha('black', 0.2), pch = 16, cex = 0.5)
+      }
+      points(jitter(rep(n + 0.2, nmut), factor = 4 / n), mutZ,
+              col = alpha('red', 0.2), pch = 16, cex = 0.5)
+      points(n - 0.2, segZ[nseg],
+              col = alpha('green', 0.75), pch = 16, cex = 0.5)
+      arrows(c(n - 0.3, n + 0.1), c(median(segZ, na.rm = T), median(mutZ, na.rm = T)),
+            c(n - 0.1, n + 0.3), c(median(segZ, na.rm = T), median(mutZ, na.rm = T)), length = 0)
+    }
+  }
+  axis(side = 1, padj = -1, at = c(1:2), labels = parse(text = sprintf('italic(%s)', c('aceB', 'purA'))), cex.axis = 0.7)
+
+dev.off()

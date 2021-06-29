@@ -1,0 +1,16 @@
+name,structure,start,end,color
+metA,gene,1,75,yellow
+Cra,TF,93,110,green
+-35,sigma70,235,240,grey
+-10,sigma70,257,262,grey
+IHF,TF,103,115,green
+IclR,TF,127,130,red
+IclR,TF,134,140,red
+IclR,TF,143,149,red
+IclR,TF,161,167,red
+IHF,TF,190,202,green
+IclR,TF,212,218,red
+IclR,TF,223,237,red
+CRP-cAMP,TF,227,248,red
+IclR,TF,239,245,red
+aceB,gene,344,439,yellow

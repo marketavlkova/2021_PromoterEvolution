@@ -1,0 +1,7 @@
+name,structure,start,end,color
+pdeK,gene,1,68,yellow
+-35,sigma70,165,170,grey
+-10,sigma70,188,193,grey
+CRP-cAMP,TF,108,129,green
+DcuR,TF,86,102,green
+dctA,gene,251,356,yellow

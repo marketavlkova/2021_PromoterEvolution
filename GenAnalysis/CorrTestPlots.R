@@ -96,10 +96,10 @@ par(las = 1, mar = c(5.1, 4.1, 2.1, 2.1))
   c <- cor.test(proms[, 5][which(proms[, 1] >= 130)],
                 igrs[, 5][which(igrs[, 1] >= 130)],
                 method = 'spearman', exact = F)
-  mtext(text = paste0('R: ', round(c$estimate, digits = 3)), side = 3, line = -1, cex = 0.9)
-  mtext(text = paste0('p-value: ', round(c$p.value, digits = 183)), side = 3, line = -2, cex = 0.9)
-  title(xlab = 'PSS with 100bp ORFs', line = 2.5)
-  title(ylab = 'PSS without 100bp ORFs', line = 2.5)
+  mtext(text = paste0('R = ', round(c$estimate, digits = 3)), side = 3, line = -1, cex = 0.9)
+  mtext(text = paste0('p = ', signif(c$p.value, digits = 2)), side = 3, line = -2, cex = 0.9)
+  title(xlab = 'PSS in promoters', line = 2.5)
+  title(ylab = 'PSS in IGRs', line = 2.5)
   legend('topleft', legend = parse(text = sprintf('italic(%s)', prom.pss)), col = cols,
           pch = 16, title = 'Promoter', cex = 0.85)
 dev.off()
@@ -117,10 +117,10 @@ par(las = 1, mar = c(5.1, 4.1, 2.1, 2.1))
   c <- cor.test(proms[, 4][which(proms[, 1] >= 130)],
                 igrs[, 4][which(igrs[, 1] >= 130)],
                 method = 'spearman', exact = F)
-  mtext(text = paste0('R: ', round(c$estimate, digits = 3)), side = 3, line = -1, cex = 0.9)
-  mtext(text = paste0('p-value: ', round(c$p.value, digits = 152)), side = 3, line = -2, cex = 0.9)
-  title(xlab = '100 - API with 100bp ORFs', line = 2.5)
-  title(ylab = '100 - API without 100bp ORFs', line = 2.5)
+  mtext(text = paste0('R = ', round(c$estimate, digits = 3)), side = 3, line = -1, cex = 0.9)
+  mtext(text = paste0('p = ', signif(c$p.value, digits = 2)), side = 3, line = -2, cex = 0.9)
+  title(xlab = '100 - API in promoters', line = 2.5)
+  title(ylab = '100 - API in IGRs', line = 2.5)
   legend('topleft', legend = parse(text = sprintf('italic(%s)', prom.pss)), col = cols,
           pch = 16, title = 'Promoter', cex = 0.85)
 dev.off()
@@ -128,9 +128,9 @@ dev.off()
 c <- cor.test(common[, 4], common[, 7], method = 'spearman', exact = F)
 cat(paste('Correlation in PSS between IGRs & Genes:',
           round(c$estimate, digits = 4),
-          'p-value:', round(c$p.value, digits = 11)), '\n')
+          'p-value:', signif(c$p.value, digits = 2)), '\n')
 
 c <- cor.test(common[, 3], common[, 6], method = 'spearman', exact = F)
 cat(paste('Correlation in API between IGRs & Genes:',
           round(c$estimate, digits = 4),
-          'p-value:', round(c$p.value, digits = 8)), '\n')
+          'p-value:', signif(c$p.value, digits = 2)), '\n')

@@ -1,5 +1,6 @@
 #!/usr/local/bin/Rscript
-# library(geometry)
+### source: https://stackoverflow.com/questions/35194048/using-r-how-to-calculate-the-distance-from-one-point-to-a-line
+
 dist3d <- function(x0, x1, x2) {
   v1 <- x1 - x2
   v2 <- x0 - x1

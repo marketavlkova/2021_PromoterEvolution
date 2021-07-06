@@ -7,7 +7,7 @@ library('scales') ### for function alpha
 library('scatterplot3d') ### for 3D plot
 ### incorporate function extracting modal population expression values
 if (!exists('foo', mode = 'function')) source('PeaksEx.R')
-### incorporate function extracting transcriptional noise values
+### incorporate function extracting coefficient of variation values
 if (!exists('foo', mode = 'function')) source('CvEx.R')
 ### incorporate function calculating distance of point from a line (plasticity)
 if (!exists("foo", mode = "function")) source("PointLine3D.R")
@@ -113,8 +113,8 @@ for (path in data.path) {
     rownames(Fpeaks) <- paste(1:nfiles)
     colnames(Fpeaks) <- cond
     write.csv(Fpeaks, 'Peaks.csv', row.names = T)
-    ### get transcriptional noise, i.e., coefficient of variation
-    ### (standard deviation from GFP channel / modal population expression)
+    ### get coefficient of variation, i.e., standard deviation
+    ### from GFP channel / modal population expression
     Fcvs <- exCvs(InFiles, (length(Files) / nfiles))
     Fcvs <- matrix(Fcvs, nrow = nfiles, ncol = 1, byrow = T)
     rownames(Fcvs) <- paste(1:nfiles)
@@ -141,8 +141,8 @@ for (path in data.path) {
   cond <- unlist(strsplit(end.dir, split = '_', fixed = T))[3]
   ### get info about type of the promoters from directory name
   prom <- unlist(strsplit(path, split = '/', fixed = T))[ndir - 3]
-  ### if directory contains seg. promoter variants
-  ### save modal expression and noise values in seg.ls list
+  ### if directory contains seg. promoter variants, save modal
+  ### expression and coefficient of variation values in seg.ls list
   if (startsWith(end.dir, 'pxxx')) {
     data.m <- read.csv(paste0(path, 'Peaks.csv'), header = T)
     data.m <- data.m[, -1]
@@ -152,8 +152,8 @@ for (path in data.path) {
     data.n <- data.n[which(!is.na(data.n))]
     df <- cbind(data.m[1:nseg[s]], data.n[1:nseg[s]])
     seg.ls[[paste0(prom, '_', cond, '_')]] <- df
-    ### save values for offset calculation
-    ### (in both expression and noise)
+    ### save values for offset calculation (in both
+    ### expression and coefficient of variation)
     pos.seg.m <- data.m[nseg[s] + 1]
     neg.seg.m <- data.m[nseg[s] + 2]
     mg1655.seg.m <- data.m[nseg[s]]
@@ -182,8 +182,8 @@ for (path in data.path) {
     pos.mut.n <- data.n[94]
     neg.mut.n <- data.n[95]
     mg1655.mut.n <- data.n[96]
-    ### calculate offset between segregating and
-    ### random mutation datasets (in both expression and noise)
+    ### calculate offset between segregating and random
+    ### datasets (in both expression and coefficient of variation)
     off.m <- mean(c((pos.mut.m - pos.seg.m), (neg.mut.m - neg.seg.m), (mg1655.mut.m - mg1655.seg.m)), na.rm = T)
     offset.m <- c(offset.m, off.m)
     off.n <- mean(c((pos.mut.n - pos.seg.n), (neg.mut.n - neg.seg.n), (mg1655.mut.n - mg1655.seg.n)), na.rm = T)
@@ -303,10 +303,10 @@ pdf(file = 'Figure_3a.pdf', width = 5, height = 5)
   plot(x = mm[, 3], y = mm[, 5], xlim = c(0, 0.2), ylim = c(0, 0.3),
         xlab = '', ylab = '', col = cols, pch = 16)
   c <- cor.test(mm[, 3], mm[, 5], method = 'spearman', exact = F)
-  mtext(text = paste0('R: ', round(c$estimate, digits = 3)), side = 3, line = -1, cex = 0.9)
-  mtext(text = paste0('p-value: ', round(c$p.value, digits = 5)), side = 3, line = -2, cex = 0.9)
+  mtext(text = paste0('R = ', round(c$estimate, digits = 3)), side = 3, line = -1, cex = 0.9)
+  mtext(text = paste0('p = ', signif(c$p.value, digits = 2)), side = 3, line = -2, cex = 0.9)
   title(xlab = 'Proportion of segregating sites in promoters', line = 2.5)
-  title(ylab = 'Stdev in modal expression (segregating variants)', line = 3)
+  title(ylab = 'Stdev in modal expression', line = 3)
   legend('topleft', legend = parse(text = sprintf('italic(%s)', prom.pss)), col = cols.leg,
           pch = 16, title = 'Promoter')
 
@@ -321,10 +321,10 @@ pdf(file = 'Figure_3b.pdf', width = 5, height = 5)
   plot(x = mm[, 2], y = mm[, 5], xlim = c(3, 32), ylim = c(0, 0.3),
         xlab = '', ylab = '', col = cols, pch = 16)
   c <- cor.test(mm[, 2], mm[, 5], method = 'spearman', exact = F)
-  mtext(text = paste0('R: ', round(c$estimate, digits = 3)), side = 3, line = -1, cex = 0.9)
-  mtext(text = paste0('p-value: ', round(c$p.value, digits = 5)), side = 3, line = -2, cex = 0.9)
+  mtext(text = paste0('R = ', round(c$estimate, digits = 3)), side = 3, line = -1, cex = 0.9)
+  mtext(text = paste0('p = ', signif(c$p.value, digits = 2)), side = 3, line = -2, cex = 0.9)
   title(xlab = 'Total number of segregating variants', line = 2.5)
-  title(ylab = 'Stdev in modal expression (segregating variants)', line = 3)
+  title(ylab = 'Stdev in modal expression', line = 3)
   legend('topleft', legend = parse(text = sprintf('italic(%s)', prom.pss)), col = cols.leg,
           pch = 16, title = 'Promoter')
 
@@ -339,10 +339,10 @@ pdf(file = 'SupplementaryFigure_2a.pdf', width = 5, height = 5)
   plot(x = mm[, 4], y = mm[, 5], xlim = c(0, 5), ylim = c(0, 0.3),
         xlab = '', ylab = '', col = cols, pch = 16)
   c <- cor.test(mm[, 4], mm[, 5], method = 'spearman', exact = F)
-  mtext(text = paste0('R: ', round(c$estimate, digits = 3)), side = 3, line = -1, cex = 0.9)
-  mtext(text = paste0('p-value: ', round(c$p.value, digits = 5)), side = 3, line = -2, cex = 0.9)
+  mtext(text = paste0('R = ', round(c$estimate, digits = 3)), side = 3, line = -1, cex = 0.9)
+  mtext(text = paste0('p = ', signif(c$p.value, digits = 2)), side = 3, line = -2, cex = 0.9)
   title(xlab = '100 - Average pairwise identity in promoters', line = 2.5)
-  title(ylab = 'Stdev in modal expression (segregating variants)', line = 3)
+  title(ylab = 'Stdev in modal expression', line = 3)
   legend('topleft', legend = parse(text = sprintf('italic(%s)', prom.pss)), col = cols.leg,
           pch = 16, title = 'Promoter')
 
@@ -357,10 +357,10 @@ pdf(file = 'SupplementaryFigure_2b.pdf', width = 5, height = 5)
   plot(x = mm[, 1], y = mm[, 5], xlim = c(3, 25), ylim = c(0, 0.3),
         xlab = '', ylab = '', col = cols, pch = 16)
   c <- cor.test(mm[, 1], mm[, 5], method = 'spearman', exact = F)
-  mtext(text = paste0('R: ', round(c$estimate, digits = 3)), side = 3, line = -1, cex = 0.9)
-  mtext(text = paste0('p-value: ', round(c$p.value, digits = 5)), side = 3, line = -2, cex = 0.9)
+  mtext(text = paste0('R = ', round(c$estimate, digits = 3)), side = 3, line = -1, cex = 0.9)
+  mtext(text = paste0('p = ', signif(c$p.value, digits = 2)), side = 3, line = -2, cex = 0.9)
   title(xlab = 'Number of cloned segregating variants', line = 2.5)
-  title(ylab = 'Stdev in modal expression (segregating variants)', line = 3)
+  title(ylab = 'Stdev in modal expression', line = 3)
   legend('topleft', legend = parse(text = sprintf('italic(%s)', prom.pss)), col = cols.leg,
           pch = 16, title = 'Promoter')
 
@@ -1222,17 +1222,17 @@ pdf(file = "SupplementaryFigure_5.pdf", width = 9, height = 5)
 dev.off()
 
 ##################################################
-################ MEAN-NOISE PLOTS ################
+################# MEAN-CV PLOTS ##################
 ############ SUPP FIGURE 4 & FIGURE 7 ############
 ##################################################
 
-### define colors for ploting and variable 'dev'
-### to save deviations in transcriptional noise in it
+### define colors for ploting and variable 'noi'
+### to save noise levels in it
 cols <- c('red', 'blue', 'gold')
-dev <- list()
+noi <- list()
 
 ### produce Supplementary Figure 4 (fitting smooth spline
-### to transcriptional noise and modal expression data)
+### to coefficient of variation and modal expression data)
 cat(paste('Producing Supplementary Figure 4\n'))
 pdf(file = 'SupplementaryFigure_4.pdf', width = 9, height = 7)
   par(mfrow = c(3, 4),
@@ -1255,15 +1255,15 @@ pdf(file = 'SupplementaryFigure_4.pdf', width = 9, height = 7)
     ### loop through all the environments
     for (a in args) {
       ### get and correct expression level and
-      ### noise values for random variants
+      ### coefficient of variation values for random variants
       mut <- mut.ls[[a]][, 3:4]
       mut[, 1] <- as.numeric(mut[, 1]) - offset.m[a]
       mut[, 2] <- as.numeric(mut[, 2]) - offset.n[a]
-      ### check for NAs in expression level and noise
+      ### check for NAs in expression level and coefficient of variation
       ex1 <- as.numeric(rownames(mut)[which(is.na(mut[, 1]))])
       ex2 <- as.numeric(rownames(mut)[which(is.na(mut[, 2]))])
       ### collapse info about NAs for variants if it
-      ### is present in both expression and noise
+      ### is present in both expression and coefficient of variation
       ex <- ex1
       if (length(ex2) > 0) {
         for (e2 in ex2) {
@@ -1279,25 +1279,25 @@ pdf(file = 'SupplementaryFigure_4.pdf', width = 9, height = 7)
         }
       }
       ex <- sort(ex)
-      ### create expression and noise matrix without
-      ### NAs for smooth spline calculation
+      ### create expression and coefficient of variation matrix
+      ### without NAs for smooth spline calculation
       mut <- mut[complete.cases(mut),]
       ### calculate the smooth spline
       li <- smooth.spline(c(mut[, 1], seg.ls[[a]][, 1]), c(mut[, 2], seg.ls[[a]][, 2]), lambda = 0.01)
-      ### predict noise levels for each observed expression
-      ### level from the calculated smooth spline
+      ### predict coefficient of variation levels for each observed
+      ### expression level from the calculated smooth spline
       fit <- predict(li, c(mut[, 1], seg.ls[[a]][, 1]))
-      devs <- c(mut[, 2], seg.ls[[a]][, 2]) - fit$y
-      ### add NAs into the vector of noise deviations
+      noise <- c(mut[, 2], seg.ls[[a]][, 2]) - fit$y
+      ### add NAs into the vector of noise levels
       ### into the same places they were removed from
       ### before smooth spline calculation
       if (length(ex) > 0) {
         for (e in ex) {
-          hold <- devs
-          devs <- c(hold[1:(e - 1)], NA, hold[e:length(hold)])
+          hold <- noise
+          noise <- c(hold[1:(e - 1)], NA, hold[e:length(hold)])
         }
       }
-      dev[[a]] <- devs
+      noi[[a]] <- noise
       ### plotting
       if (a == args[1]) {
         plot(mut[, 1], mut[, 2], pch = 16,
@@ -1324,7 +1324,7 @@ pdf(file = 'SupplementaryFigure_4.pdf', width = 9, height = 7)
       title(xlab = 'Modal expression (log10, a.u.)', line = 2)
     }
     if (pr == names(prom.pss)[1] || pr == names(prom.pss)[5] || pr == names(prom.pss)[9]) {
-      title(ylab = 'Noise (std/Mo)', line = 3)
+      title(ylab = 'Coefficient of variation (stdev/Mode)', line = 3)
     }
     legend('topright', legend = conds, pch = 16,
             col = c(alpha(cols[1], 0.3), alpha(cols[2], 0.3), alpha(cols[3], 0.3)),
@@ -1337,7 +1337,7 @@ pdf(file = 'SupplementaryFigure_4.pdf', width = 9, height = 7)
 
 dev.off()
 
-### produce Figure 7a (comparing noise deviations
+### produce Figure 7a (comparing noise
 ### between seg. and random variants)
 cat(paste('Producing Figure 7a\n'))
 pdf(file = "Figure_7a.pdf", width = 9, height = 7)
@@ -1369,15 +1369,15 @@ pdf(file = "Figure_7a.pdf", width = 9, height = 7)
     ### loop through each environment
     for (n in 1:3) {
       a <- args[n]
-      ### obtain noise deviation values for
+      ### obtain noise values for
       ### random and seg. variants
       nmut <- length(mut.ls[[a]][, 3])
-      mut <- dev[[a]][1:nmut]
-      seg <- dev[[a]][nmut + 1:length(dev[[a]])]
+      mut <- noi[[a]][1:nmut]
+      seg <- noi[[a]][nmut + 1:length(noi[[a]])]
       seg <- seg[complete.cases(seg)]
       nseg <- length(seg)
       ### test the significance of difference in noise
-      ### deviation between seg. and random variants
+      ### levels between seg. and random variants
       test <- wilcox.test(x = mut, y = seg, exact = F)
       ### plotting
       if (a == args[1]) {
@@ -1399,7 +1399,7 @@ pdf(file = "Figure_7a.pdf", width = 9, height = 7)
     }
     axis(side = 1, at = c(1:3), labels = conds)
     if (pr == names(prom.pss)[1] || pr == names(prom.pss)[5] || pr == names(prom.pss)[9]) {
-      title(ylab = 'Noise deviation (stdev / mode)', line = 3.5)
+      title(ylab = 'Noise', line = 3.5)
     }
   }
   plot(NULL, axes = F, ann = F, xlim = c(0, 1), ylim = c(0, 1))
@@ -1409,7 +1409,7 @@ pdf(file = "Figure_7a.pdf", width = 9, height = 7)
 
 dev.off()
 
-### produce Figure 7b (comparing noise deviations
+### produce Figure 7b (comparing noise levels
 ### in aceB between seg. and random variants)
 cat(paste('Producing Figure 7b\n'))
 pdf(file = "Figure_7b.pdf", width = 5, height = 5)
@@ -1429,8 +1429,8 @@ pdf(file = "Figure_7b.pdf", width = 5, height = 5)
   for (n in 1:3) {
     a <- args[n]
     nmut <- length(mut.ls[[a]][, 3])
-    mut <- dev[[a]][1:nmut]
-    seg <- dev[[a]][nmut + 1:length(dev[[a]])]
+    mut <- noi[[a]][1:nmut]
+    seg <- noi[[a]][nmut + 1:length(noi[[a]])]
     seg <- seg[complete.cases(seg)]
     nseg <- length(seg)
     test <- wilcox.test(x = mut, y = seg, exact = F)
@@ -1452,11 +1452,11 @@ pdf(file = "Figure_7b.pdf", width = 5, height = 5)
     text(x = n, y = 0.285, labels = signif(test$p.value, digits = 2))
   }
   axis(side = 1, at = c(1:3), labels = conds)
-  title(ylab = 'Noise deviation (stdev / mode)', line = 2.5)
+  title(ylab = 'Noise', line = 2.5)
 
 dev.off()
 
-### produce Figure 7c (comparing noise deviations
+### produce Figure 7c (comparing noise levels
 ### in purA between seg. and random variants)
 cat(paste('Producing Figure 7c\n'))
 pdf(file = "Figure_7c.pdf", width = 5, height = 5)
@@ -1476,8 +1476,8 @@ pdf(file = "Figure_7c.pdf", width = 5, height = 5)
   for (n in 1:3) {
     a <- args[n]
     nmut <- length(mut.ls[[a]][, 3])
-    mut <- dev[[a]][1:nmut]
-    seg <- dev[[a]][nmut + 1:length(dev[[a]])]
+    mut <- noi[[a]][1:nmut]
+    seg <- noi[[a]][nmut + 1:length(noi[[a]])]
     seg <- seg[complete.cases(seg)]
     nseg <- length(seg)
     test <- wilcox.test(x = mut, y = seg, exact = F)
@@ -1499,7 +1499,7 @@ pdf(file = "Figure_7c.pdf", width = 5, height = 5)
     text(x = n, y = 0.085, labels = signif(test$p.value, digits = 2))
   }
   axis(side = 1, at = c(1:3), labels = conds)
-  title(ylab = 'Noise deviation (stdev / mode)', line = 3)
+  title(ylab = 'Noise', line = 3)
 
 dev.off()
 
@@ -1548,18 +1548,18 @@ par(fig = c(0, 1, 0, 1),
         x0 <- c(seg1[s], seg2[s], seg3[s])
         seg <- c(seg, dist3d(x0, x1, x2))
       }
-      ### get noise deviations for both seg. and random variants
+      ### get noise levels for both seg. and random variants
       nmut <- length(mut.ls[[a]][, 3][which(complete.cases(mut.ls[[a]]))])
-      mutN1 <- dev[[a]][1:nmut]
-      segN1 <- dev[[a]][nmut + 1:length(dev[[a]])]
+      mutN1 <- noi[[a]][1:nmut]
+      segN1 <- noi[[a]][nmut + 1:length(noi[[a]])]
       segN1 <- segN1[complete.cases(segN1)]
       nmut <- length(mut.ls[[b]][, 3][which(complete.cases(mut.ls[[b]]))])
-      mutN2 <- dev[[b]][1:nmut]
-      segN2 <- dev[[b]][nmut + 1:length(dev[[b]])]
+      mutN2 <- noi[[b]][1:nmut]
+      segN2 <- noi[[b]][nmut + 1:length(noi[[b]])]
       segN2 <- segN2[complete.cases(segN2)]
       nmut <- length(mut.ls[[c]][, 3][which(complete.cases(mut.ls[[c]]))])
-      mutN3 <- dev[[c]][1:nmut]
-      segN3 <- dev[[c]][nmut + 1:length(dev[[c]])]
+      mutN3 <- noi[[c]][1:nmut]
+      segN3 <- noi[[c]][nmut + 1:length(noi[[c]])]
       segN3 <- segN3[complete.cases(segN3)]
       ### calculate expression z-scores for 1st environment
       seg.sd <- sd(seg1)
@@ -1581,17 +1581,17 @@ par(fig = c(0, 1, 0, 1),
       seg.md <- mean(seg)
       segZ4 <- abs(seg - seg.md) / seg.sd
       mutZ4 <- abs(mut - seg.md) / seg.sd
-      ### calculate noise deviation z-scores for 1st environment
+      ### calculate noise z-scores for 1st environment
       seg.sd <- sd(segN1)
       seg.md <- mean(segN1)
       segZ5 <- abs(segN1 - seg.md) / seg.sd
       mutZ5 <- abs(mutN1 - seg.md) / seg.sd
-      ### calculate noise deviation z-scores for 2nd environment
+      ### calculate noise z-scores for 2nd environment
       seg.sd <- sd(segN2)
       seg.md <- mean(segN2)
       segZ6 <- abs(segN2 - seg.md) / seg.sd
       mutZ6 <- abs(mutN2 - seg.md) / seg.sd
-      ### calculate noise deviation z-scores for 3rd environment
+      ### calculate noise z-scores for 3rd environment
       seg.sd <- sd(segN3)
       seg.md <- mean(segN3)
       segZ7 <- abs(segN3 - seg.md) / seg.sd
@@ -1668,16 +1668,16 @@ par(fig = c(0.05, 0.35, 0.37, 0.94),
       }
 
       nmut <- length(mut.ls[[a]][, 3][which(complete.cases(mut.ls[[a]]))])
-      mutN1 <- dev[[a]][1:nmut]
-      segN1 <- dev[[a]][nmut + 1:length(dev[[a]])]
+      mutN1 <- noi[[a]][1:nmut]
+      segN1 <- noi[[a]][nmut + 1:length(noi[[a]])]
       segN1 <- segN1[complete.cases(segN1)]
       nmut <- length(mut.ls[[b]][, 3][which(complete.cases(mut.ls[[b]]))])
-      mutN2 <- dev[[b]][1:nmut]
-      segN2 <- dev[[b]][nmut + 1:length(dev[[b]])]
+      mutN2 <- noi[[b]][1:nmut]
+      segN2 <- noi[[b]][nmut + 1:length(noi[[b]])]
       segN2 <- segN2[complete.cases(segN2)]
       nmut <- length(mut.ls[[c]][, 3][which(complete.cases(mut.ls[[c]]))])
-      mutN3 <- dev[[c]][1:nmut]
-      segN3 <- dev[[c]][nmut + 1:length(dev[[c]])]
+      mutN3 <- noi[[c]][1:nmut]
+      segN3 <- noi[[c]][nmut + 1:length(noi[[c]])]
       segN3 <- segN3[complete.cases(segN3)]
 
       seg.sd <- sd(seg1)

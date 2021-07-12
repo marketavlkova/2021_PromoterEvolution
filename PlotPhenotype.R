@@ -481,10 +481,10 @@ pdf(file = 'Figure_4b.1.pdf', width = 9, height = 3)
   bl <- bl[which(bl < 0)]
   br <- both[, 2][which(both[, 1] > 0)]
   br <- br[which(br < 0)]
-  text(x = -1, y = 1, labels = round(length(tl) / all, digits = 4))
-  text(x = 1, y = 1, labels = round(length(tr) / all, digits = 4))
-  text(x = -1, y = -1, labels = round(length(bl) / all, digits = 4))
-  text(x = 1, y = -1, labels = round(length(br) / all, digits = 4))
+  text(x = -1, y = 1, labels = round(length(tl) / all, digits = 2))
+  text(x = 1, y = 1, labels = round(length(tr) / all, digits = 2))
+  text(x = -1, y = -1, labels = round(length(bl) / all, digits = 2))
+  text(x = 1, y = -1, labels = round(length(br) / all, digits = 2))
 
   plot(comp[[1]], comp[[3]], pch = 16,
         xlim = c(-2.25, 2.25), ylim = c(-2.25, 2.25),
@@ -503,10 +503,10 @@ pdf(file = 'Figure_4b.1.pdf', width = 9, height = 3)
   bl <- bl[which(bl < 0)]
   br <- both[, 2][which(both[, 1] > 0)]
   br <- br[which(br < 0)]
-  text(x = -1, y = 1, labels = round(length(tl) / all, digits = 4))
-  text(x = 1, y = 1, labels = round(length(tr) / all, digits = 4))
-  text(x = -1, y = -1, labels = round(length(bl) / all, digits = 4))
-  text(x = 1, y = -1, labels = round(length(br) / all, digits = 4))
+  text(x = -1, y = 1, labels = round(length(tl) / all, digits = 2))
+  text(x = 1, y = 1, labels = round(length(tr) / all, digits = 2))
+  text(x = -1, y = -1, labels = round(length(bl) / all, digits = 2))
+  text(x = 1, y = -1, labels = round(length(br) / all, digits = 2))
 
   plot(comp[[2]], comp[[3]], pch = 16,
         xlim = c(-2.25, 2.25), ylim = c(-2.25, 2.25),
@@ -524,10 +524,10 @@ pdf(file = 'Figure_4b.1.pdf', width = 9, height = 3)
   bl <- bl[which(bl < 0)]
   br <- both[, 2][which(both[, 1] > 0)]
   br <- br[which(br < 0)]
-  text(x = -1, y = 1, labels = round(length(tl) / all, digits = 4))
-  text(x = 1, y = 1, labels = round(length(tr) / all, digits = 4))
-  text(x = -1, y = -1, labels = round(length(bl) / all, digits = 4))
-  text(x = 1, y = -1, labels = round(length(br) / all, digits = 4))
+  text(x = -1, y = 1, labels = round(length(tl) / all, digits = 2))
+  text(x = 1, y = 1, labels = round(length(tr) / all, digits = 2))
+  text(x = -1, y = -1, labels = round(length(bl) / all, digits = 2))
+  text(x = 1, y = -1, labels = round(length(br) / all, digits = 2))
 
 dev.off()
 
@@ -641,10 +641,10 @@ pdf(file = 'Figure_4b.2.pdf', width = 9, height = 3)
   bl <- bl[which(bl < 0)]
   br <- both[, 2][which(both[, 1] > 0)]
   br <- br[which(br < 0)]
-  text(x = -0.5, y = 0.5, labels = round(length(tl) / all, digits = 4))
-  text(x = 0.5, y = 0.5, labels = round(length(tr) / all, digits = 4))
-  text(x = -0.5, y = -0.5, labels = round(length(bl) / all, digits = 4))
-  text(x = 0.5, y = -0.5, labels = round(length(br) / all, digits = 4))
+  text(x = -0.5, y = 0.5, labels = round(length(tl) / all, digits = 2))
+  text(x = 0.5, y = 0.5, labels = round(length(tr) / all, digits = 2))
+  text(x = -0.5, y = -0.5, labels = round(length(bl) / all, digits = 2))
+  text(x = 0.5, y = -0.5, labels = round(length(br) / all, digits = 2))
 
   plot(comp[[1]], comp[[3]], pch = 16,
         xlim = c(-1, 1), ylim = c(-1, 1),
@@ -663,10 +663,10 @@ pdf(file = 'Figure_4b.2.pdf', width = 9, height = 3)
   bl <- bl[which(bl < 0)]
   br <- both[, 2][which(both[, 1] > 0)]
   br <- br[which(br < 0)]
-  text(x = -0.5, y = 0.5, labels = round(length(tl) / all, digits = 4))
-  text(x = 0.5, y = 0.5, labels = round(length(tr) / all, digits = 4))
-  text(x = -0.5, y = -0.5, labels = round(length(bl) / all, digits = 4))
-  text(x = 0.5, y = -0.5, labels = round(length(br) / all, digits = 4))
+  text(x = -0.5, y = 0.5, labels = round(length(tl) / all, digits = 2))
+  text(x = 0.5, y = 0.5, labels = round(length(tr) / all, digits = 2))
+  text(x = -0.5, y = -0.5, labels = round(length(bl) / all, digits = 2))
+  text(x = 0.5, y = -0.5, labels = round(length(br) / all, digits = 2))
 
   plot(comp[[2]], comp[[3]], pch = 16,
         xlim = c(-1, 1), ylim = c(-1, 1),
@@ -684,10 +684,10 @@ pdf(file = 'Figure_4b.2.pdf', width = 9, height = 3)
   bl <- bl[which(bl < 0)]
   br <- both[, 2][which(both[, 1] > 0)]
   br <- br[which(br < 0)]
-  text(x = -0.5, y = 0.5, labels = round(length(tl) / all, digits = 4))
-  text(x = 0.5, y = 0.5, labels = round(length(tr) / all, digits = 4))
-  text(x = -0.5, y = -0.5, labels = round(length(bl) / all, digits = 4))
-  text(x = 0.5, y = -0.5, labels = round(length(br) / all, digits = 4))
+  text(x = -0.5, y = 0.5, labels = round(length(tl) / all, digits = 2))
+  text(x = 0.5, y = 0.5, labels = round(length(tr) / all, digits = 2))
+  text(x = -0.5, y = -0.5, labels = round(length(bl) / all, digits = 2))
+  text(x = 0.5, y = -0.5, labels = round(length(br) / all, digits = 2))
 
 dev.off()
 

@@ -9,6 +9,8 @@ library('scatterplot3d') ### for 3D plot
 if (!exists('foo', mode = 'function')) source('PeaksEx.R')
 ### incorporate function extracting coefficient of variation values
 if (!exists('foo', mode = 'function')) source('CvEx.R')
+### incorporate file reordering function
+if (!exists("foo", mode="function")) source("ReFiles.R")
 ### incorporate function calculating distance of point from a line (plasticity)
 if (!exists("foo", mode = "function")) source("PointLine3D.R")
 

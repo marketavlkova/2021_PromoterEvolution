@@ -305,7 +305,7 @@ pdf(file = 'Figure_3a.pdf', width = 5, height = 5)
   plot(x = mm[, 3], y = mm[, 5], xlim = c(0, 0.2), ylim = c(0, 0.3),
         xlab = '', ylab = '', col = cols, pch = 16)
   c <- cor.test(mm[, 3], mm[, 5], method = 'spearman', exact = F)
-  mtext(text = paste0('R = ', round(c$estimate, digits = 3)), side = 3, line = -1, cex = 0.9)
+  mtext(text = paste0('rho = ', round(c$estimate, digits = 3)), side = 3, line = -1, cex = 0.9)
   mtext(text = paste0('p = ', signif(c$p.value, digits = 2)), side = 3, line = -2, cex = 0.9)
   title(xlab = 'Proportion of segregating sites in promoters', line = 2.5)
   title(ylab = 'Stdev in modal expression', line = 3)
@@ -323,7 +323,7 @@ pdf(file = 'Figure_3b.pdf', width = 5, height = 5)
   plot(x = mm[, 2], y = mm[, 5], xlim = c(3, 32), ylim = c(0, 0.3),
         xlab = '', ylab = '', col = cols, pch = 16)
   c <- cor.test(mm[, 2], mm[, 5], method = 'spearman', exact = F)
-  mtext(text = paste0('R = ', round(c$estimate, digits = 3)), side = 3, line = -1, cex = 0.9)
+  mtext(text = paste0('rho = ', round(c$estimate, digits = 3)), side = 3, line = -1, cex = 0.9)
   mtext(text = paste0('p = ', signif(c$p.value, digits = 2)), side = 3, line = -2, cex = 0.9)
   title(xlab = 'Total number of segregating variants', line = 2.5)
   title(ylab = 'Stdev in modal expression', line = 3)
@@ -341,7 +341,7 @@ pdf(file = 'SupplementaryFigure_2a.pdf', width = 5, height = 5)
   plot(x = mm[, 4], y = mm[, 5], xlim = c(0, 5), ylim = c(0, 0.3),
         xlab = '', ylab = '', col = cols, pch = 16)
   c <- cor.test(mm[, 4], mm[, 5], method = 'spearman', exact = F)
-  mtext(text = paste0('R = ', round(c$estimate, digits = 3)), side = 3, line = -1, cex = 0.9)
+  mtext(text = paste0('rho = ', round(c$estimate, digits = 3)), side = 3, line = -1, cex = 0.9)
   mtext(text = paste0('p = ', signif(c$p.value, digits = 2)), side = 3, line = -2, cex = 0.9)
   title(xlab = '100 - Average pairwise identity in promoters', line = 2.5)
   title(ylab = 'Stdev in modal expression', line = 3)
@@ -359,7 +359,7 @@ pdf(file = 'SupplementaryFigure_2b.pdf', width = 5, height = 5)
   plot(x = mm[, 1], y = mm[, 5], xlim = c(3, 25), ylim = c(0, 0.3),
         xlab = '', ylab = '', col = cols, pch = 16)
   c <- cor.test(mm[, 1], mm[, 5], method = 'spearman', exact = F)
-  mtext(text = paste0('R = ', round(c$estimate, digits = 3)), side = 3, line = -1, cex = 0.9)
+  mtext(text = paste0('rho = ', round(c$estimate, digits = 3)), side = 3, line = -1, cex = 0.9)
   mtext(text = paste0('p = ', signif(c$p.value, digits = 2)), side = 3, line = -2, cex = 0.9)
   title(xlab = 'Number of cloned segregating variants', line = 2.5)
   title(ylab = 'Stdev in modal expression', line = 3)
@@ -740,8 +740,8 @@ for (pr in names(prom.pss)) {
     ### save modal expression values for random variants and the MG1655 varaint
     pl <- as.numeric(mut.ls[[a]][, 3][which(as.numeric(mut.ls[[a]][, 2]) == 1)])
     mg <- as.numeric(mut.ls[[a]][length(mut.ls[[a]][, 3]), 3])
-    ### calculate fold changes in expression caused by individual SNPs
-    sizes <- pl / mg
+    ### calculate differences in log expression caused by individual SNPs
+    sizes <- abs(pl - mg)
     ### loop through all random variants
     for (snp in 1:length(snp_map[, 2])) {
       hit <- 0
@@ -765,8 +765,13 @@ for (pr in names(prom.pss)) {
   }
 }
 ### test for differences in the fold change sizes (Fligner-Kileen test of homogeneity of variances)
-test <- fligner.test(x = c(annTrue, annFalse), g = c(rep('T', length(annTrue)), rep('F', length(annFalse))))
-cat(paste('The p-value indicating significance in fold-changes in expression cause by random SNPs inside vs. outside of TF and RNAP biding sites:', signif(test$p.value, digits = 3), '\n'))
+test <- wilcox.test(x = annTrue, y = annFalse, alternative = 'greater')
+cat(paste0('The fold-changes in expression due to single SNPs are larger inside RNAP and TF binding sites (',
+          round(median(annTrue), digits = 2),
+          ') than ouside of them (',
+          round(median(annFalse, na.rm = T), digits = 2),
+          ') with significance: p = ',
+          signif(test$p.value, digits = 3), '\n'))
 
 ##################################################
 ################ VARIATION PLOTS #################
@@ -1631,7 +1636,7 @@ par(fig = c(0, 1, 0, 1),
       text(x = n, y = 150, labels = signif(test$p.value, digits = 2))
     }
     axis(side = 1, at = c(1:10), labels = parse(text = sprintf('italic(%s)', prom.pss)))
-    title(ylab = 'Sum of absolute z-scores', line = 2.5)
+    title(ylab = 'Cummulative z-score', line = 2.5)
     legend(0.1, 70, legend = c('Mutagenesis', 'Segregating', 'MG1655'),
             pch = 16, col = c(alpha('red', 0.2), alpha('black', 0.2), alpha('green', 0.75)),
             title = 'Promoter set', cex = 0.75)

@@ -107,7 +107,11 @@ par(las = 1, mar = c(5.1, 7, 2.1, 2.1))
       points(lib.pss[[l]], jitter(rep(l, len), factor = (10 / l)),
             pch = 16, col = alpha(cols[l], 0.4), cex = 0.8)
     }
-    text(x = 0.425, y = l, labels = signif(pvals.pss[l], digits = 2))
+    if (pvals.pss[l] <= (0.05 / 10)) {
+      text(x = 0.425, y = l, labels = signif(pvals.pss[l], digits = 2), font = 4)
+    } else {
+      text(x = 0.425, y = l, labels = signif(pvals.pss[l], digits = 2))
+    }
     arrows(median(lib.pss[[l]]), l - 0.25, median(lib.pss[[l]]), l + 0.25, length = 0)
   }
   axis(side = 1, at = seq(0, 0.4, by = 0.1), labels = seq(0, 0.4, by = 0.1), cex.axis = 0.75)
@@ -128,7 +132,11 @@ par(las = 1, mar = c(5.1, 7, 2.1, 2.1))
       points(lib.api[[l]], jitter(rep(l, len), factor = (10 / l)),
             pch = 16, col = alpha(cols[l], 0.4), cex = 0.8)
     }
-    text(x = 13, y = l, labels = signif(pvals.api[l], digits = 2))
+    if (pvals.api[l] <= (0.05 / 10)) {
+      text(x = 13, y = l, labels = signif(pvals.api[l], digits = 2), font = 4)
+    } else {
+      text(x = 13, y = l, labels = signif(pvals.api[l], digits = 2))
+    }
     arrows(median(lib.api[[l]]), l - 0.25, median(lib.api[[l]]), l + 0.25, length = 0)
   }
   axis(side = 1, at = seq(0, 12.5, by = 2), labels = seq(0, 12.5, by = 2), cex.axis = 0.75)

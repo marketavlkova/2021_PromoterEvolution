@@ -836,7 +836,11 @@ pdf(file = 'Figure_5.pdf', width = 9, height = 7)
             pch = 16, col = alpha('black', 0.2))
       points(n - 0.2, sall[length(sall)],
             pch = 16, col = alpha('green', 0.75))
-      text(x = n, y = 4.9, labels = signif(test$p.value, digit = 2))
+      if (test$p.value <= (0.05 / 3)) {
+        text(x = n, y = 4.9, labels = signif(test$p.value, digit = 2), font = 4)
+      } else {
+        text(x = n, y = 4.9, labels = signif(test$p.value, digit = 2))
+      }
     }
     axis(side = 1, at = c(1:3), labels = conds)
     if (pr == names(prom.pss)[1] || pr == names(prom.pss)[5] || pr == names(prom.pss)[9]) {
@@ -989,7 +993,11 @@ pdf(file = "Figure_6c.pdf", width = 9, height = 5)
             col = alpha('green', 0.75), pch = 16)
     arrows(c(n - 0.3, n + 0.1), c(median(seg, na.rm = T), median(mut, na.rm = T)),
           c(n - 0.1, n + 0.3), c(median(seg, na.rm = T), median(mut, na.rm = T)), length = 0)
-    text(x = n, y = 1.95, labels = signif(test$p.value, digits = 2))
+    if (test$p.value <= 0.05) {
+      text(x = n, y = 1.95, labels = signif(test$p.value, digits = 2), font = 4)
+    } else {
+      text(x = n, y = 1.95, labels = signif(test$p.value, digits = 2))
+    }
   }
   axis(side = 1, at = c(1:10), labels = parse(text = sprintf('italic(%s)', prom.pss)))
   title(ylab = 'Plasticity', line = 2.5)
@@ -1084,7 +1092,11 @@ pdf(file = "Figure_6e.pdf", width = 5, height = 5)
         c(0.9, 1.3, 1.9, 2.3, 2.9, 3.3),
         c(median(s1, na.rm = T), median(m1, na.rm = T), median(s2, na.rm = T), median(m2, na.rm = T), median(s3, na.rm = T), median(m3, na.rm = T)), length = 0)
   for (n in 1:3) {
-    text(x = n, y = 1.95, labels = signif(t[n], digits = 2))
+    if (t[n] <= (0.05 / 3)) {
+      text(x = n, y = 1.95, labels = signif(t[n], digits = 2), font = 4)
+    } else {
+      text(x = n, y = 1.95, labels = signif(t[n], digits = 2))
+    }
   }
   for (i in 1:3) {
     a <- args[i]
@@ -1402,7 +1414,11 @@ pdf(file = "Figure_7a.pdf", width = 9, height = 7)
               col = alpha('green', 0.75), pch = 16)
       arrows(c(n - 0.3, n + 0.1), c(median(seg, na.rm = T), median(mut, na.rm = T)),
             c(n - 0.1, n + 0.3), c(median(seg, na.rm = T), median(mut, na.rm = T)), length = 0)
-      text(x = n, y = 0.023, labels = signif(test$p.value, digits = 2))
+      if (test$p.value <= (0.05 / 3)) {
+        text(x = n, y = 0.023, labels = signif(test$p.value, digits = 2), font = 4)
+      } else {
+        text(x = n, y = 0.023, labels = signif(test$p.value, digits = 2))
+      }
     }
     axis(side = 1, at = c(1:3), labels = conds)
     if (pr == names(prom.pss)[1] || pr == names(prom.pss)[5] || pr == names(prom.pss)[9]) {
@@ -1456,7 +1472,11 @@ pdf(file = "Figure_7b.pdf", width = 5, height = 5)
             col = alpha('green', 0.75), pch = 16)
     arrows(c(n - 0.3, n + 0.1), c(median(seg, na.rm = T), median(mut, na.rm = T)),
           c(n - 0.1, n + 0.3), c(median(seg, na.rm = T), median(mut, na.rm = T)), length = 0)
-    text(x = n, y = 0.285, labels = signif(test$p.value, digits = 2))
+    if (test$p.value <= (0.05 / 3)) {
+      text(x = n, y = 0.285, labels = signif(test$p.value, digits = 2), font = 4)
+    } else {
+      text(x = n, y = 0.285, labels = signif(test$p.value, digits = 2))
+    }
   }
   axis(side = 1, at = c(1:3), labels = conds)
   title(ylab = 'Noise', line = 2.5)
@@ -1503,7 +1523,11 @@ pdf(file = "Figure_7c.pdf", width = 5, height = 5)
             col = alpha('green', 0.75), pch = 16)
     arrows(c(n - 0.3, n + 0.1), c(median(seg, na.rm = T), median(mut, na.rm = T)),
           c(n - 0.1, n + 0.3), c(median(seg, na.rm = T), median(mut, na.rm = T)), length = 0)
-    text(x = n, y = 0.085, labels = signif(test$p.value, digits = 2))
+    if (test$p.value <= (0.05 / 3)) {
+      text(x = n, y = 0.085, labels = signif(test$p.value, digits = 2), font = 4)
+    } else {
+      text(x = n, y = 0.085, labels = signif(test$p.value, digits = 2))
+    }
   }
   axis(side = 1, at = c(1:3), labels = conds)
   title(ylab = 'Noise', line = 3)
@@ -1556,15 +1580,15 @@ par(fig = c(0, 1, 0, 1),
         seg <- c(seg, dist3d(x0, x1, x2))
       }
       ### get noise levels for both seg. and random variants
-      nmut <- length(mut.ls[[a]][, 3][which(complete.cases(mut.ls[[a]]))])
+      nmut <- length(mut.ls[[a]][, 3])
       mutN1 <- noi[[a]][1:nmut]
       segN1 <- noi[[a]][nmut + 1:length(noi[[a]])]
       segN1 <- segN1[complete.cases(segN1)]
-      nmut <- length(mut.ls[[b]][, 3][which(complete.cases(mut.ls[[b]]))])
+      nmut <- length(mut.ls[[b]][, 3])
       mutN2 <- noi[[b]][1:nmut]
       segN2 <- noi[[b]][nmut + 1:length(noi[[b]])]
       segN2 <- segN2[complete.cases(segN2)]
-      nmut <- length(mut.ls[[c]][, 3][which(complete.cases(mut.ls[[c]]))])
+      nmut <- length(mut.ls[[c]][, 3])
       mutN3 <- noi[[c]][1:nmut]
       segN3 <- noi[[c]][nmut + 1:length(noi[[c]])]
       segN3 <- segN3[complete.cases(segN3)]
@@ -1603,16 +1627,39 @@ par(fig = c(0, 1, 0, 1),
       seg.md <- mean(segN3)
       segZ7 <- abs(segN3 - seg.md) / seg.sd
       mutZ7 <- abs(mutN3 - seg.md) / seg.sd
+      ### check which modal expression z-scores to use
+      ### (median seg. expression above 2.5 +
+      ### low correlation with plasticity)
+      modZS <- list('1' = segZ1, '2' = segZ2, '3' = segZ3)
+      modZM <- list('1' = mutZ1, '2' = mutZ2, '3' = mutZ3)
+      meds <- c(median(seg1), median(seg2), median(seg3))
+      cors <- c()
+      for (m in 1:3) {
+        if (meds[m] > 2.5) {
+          c <- cor.test(c(modZS[[m]], modZM[[m]]), c(segZ4, mutZ4), method = 'spearman', exact = F)
+          cors <- c(cors, c$estimate)
+        } else {
+          cors <- c(cors, NA)
+        }
+      }
+      names(cors) <- c(1:3)
+      good <- names(cors)[which(!is.na(cors))]
+      if (length(good) == 1) {
+        use <- as.numeric(good)
+      } else {
+        good <- names(cors)[which(cors == min(cors, na.rm = T))]
+        use <- as.numeric(good)
+      }
       ### calculate summed z-scores for seg. variants
       segZ <- vector()
       for (i in 1:length(segZ1)) {
-        segZ <- c(segZ, (segZ1[i] + segZ2[i] + segZ3[i] + segZ4[i] + segZ5[i] + segZ6[i] + segZ7[i]))
+        segZ <- c(segZ, (modZS[[use]][i] + segZ4[i] + segZ5[i] + segZ6[i] + segZ7[i]))
       }
       nseg <- length(segZ)
       ### calculate summed z-scores for random variants
       mutZ <- vector()
       for (i in 1:length(mutZ1)) {
-        mutZ <- c(mutZ, (mutZ1[i] + mutZ2[i] + mutZ3[i] + mutZ4[i] + mutZ5[i] + mutZ6[i] + mutZ7[i]))
+        mutZ <- c(mutZ, (modZM[[use]][i] + mutZ4[i] + mutZ5[i] + mutZ6[i] + mutZ7[i]))
       }
       nmut <- length(mutZ)
       ### test the significance of differences in summed
@@ -1633,10 +1680,14 @@ par(fig = c(0, 1, 0, 1),
               col = alpha('green', 0.75), pch = 16)
       arrows(c(n - 0.3, n + 0.1), c(median(segZ, na.rm = T), median(mutZ, na.rm = T)),
             c(n - 0.1, n + 0.3), c(median(segZ, na.rm = T), median(mutZ, na.rm = T)), length = 0)
-      text(x = n, y = 150, labels = signif(test$p.value, digits = 2))
+      if (test$p.value < 0.05) {
+        text(x = n, y = 150, labels = signif(test$p.value, digits = 2), font = 4)
+      } else {
+        text(x = n, y = 150, labels = signif(test$p.value, digits = 2))
+      }
     }
     axis(side = 1, at = c(1:10), labels = parse(text = sprintf('italic(%s)', prom.pss)))
-    title(ylab = 'Cummulative z-score', line = 2.5)
+    title(ylab = 'Cumulative z-score', line = 2.5)
     legend(0.1, 70, legend = c('Mutagenesis', 'Segregating', 'MG1655'),
             pch = 16, col = c(alpha('red', 0.2), alpha('black', 0.2), alpha('green', 0.75)),
             title = 'Promoter set', cex = 0.75)

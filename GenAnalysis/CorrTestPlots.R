@@ -125,12 +125,7 @@ par(las = 1, mar = c(5.1, 4.1, 2.1, 2.1))
           pch = 16, title = 'Promoter', cex = 0.85)
 dev.off()
 
-c <- cor.test(common[, 4], common[, 7], method = 'spearman', exact = F)
-cat(paste('Correlation in PSS between IGRs & Genes:',
-          round(c$estimate, digits = 4),
-          'p-value:', signif(c$p.value, digits = 2)), '\n')
-
-c <- cor.test(common[, 3], common[, 6], method = 'spearman', exact = F)
-cat(paste('Correlation in API between IGRs & Genes:',
+c <- cor.test(common[, 3], common[, 4], method = 'spearman', exact = F)
+cat(paste('Correlation between inverted API and PSS in IGRs:',
           round(c$estimate, digits = 4),
           'p-value:', signif(c$p.value, digits = 2)), '\n')

@@ -11,7 +11,9 @@ if (!exists('foo', mode = 'function')) source('PeaksEx.R')
 if (!exists('foo', mode = 'function')) source('CvEx.R')
 ### incorporate file reordering function
 if (!exists("foo", mode="function")) source("ReFiles.R")
-### incorporate function calculating distance of point from a line (plasticity)
+### incorporate function calculating distance of point from a line in 2D (plasticity)
+if (!exists("foo", mode = "function")) source("PointLine2D.R")
+### incorporate function calculating distance of point from a line in 3D (plasticity)
 if (!exists("foo", mode = "function")) source("PointLine3D.R")
 
 ### save list of all possible conditions
@@ -1050,22 +1052,53 @@ pdf(file = "Figure_6d.pdf", width = 5, height = 5)
 
 dev.off()
 
+### define points in 2D on an isospline to use when
+### calculating the distance of datapoints from the isospline
+x1 <- rep(2, 2)
+x2 <- rep(5, 2)
+
 ### produce Figure 63 (comparing plasticity in 2D
 ### of dctA promoter between seg. and random variants)
 cat(paste('Producing Figure 6e\n'))
 pdf(file = "Figure_6e.pdf", width = 5, height = 5)
   par(las = 1)
 
-  ### calculate absolute differences in expression
-  ### between pairs of environments (= plasticity in 2D)
-  ### for both random and seg. variants in all combinations
-  m1 <- abs(mut1 - mut2)
-  m2 <- abs(mut2 - mut3)
-  m3 <- abs(mut3 - mut1)
+  ### loop through each random variant and calculate
+  ### its minimal distance from isospline (= plasticity)
+  m1 <- c()
+  for (m in 1:length(mut1)) {
+    x0 <- c(mut1[m], mut2[m])
+    m1 <- c(m1, dist2d(x0, x1, x2))
+  }
+  m2 <- c()
+  for (m in 1:length(mut2)) {
+    x0 <- c(mut2[m], mut3[m])
+    m2 <- c(m2, dist2d(x0, x1, x2))
+  }
+  m3 <- c()
+  for (m in 1:length(mut3)) {
+    x0 <- c(mut3[m], mut1[m])
+    m3 <- c(m3, dist2d(x0, x1, x2))
+  }
   nmut <- length(m1)
-  s1 <- abs(seg1 - seg2)
-  s2 <- abs(seg2 - seg3)
-  s3 <- abs(seg3 - seg1)
+  ### loop through each seg. variant and calculate
+  ### its minimal distance from isospline (= plasticity)
+  s1 <- c()
+  for(s in 1:length(seg1)) {
+    x0 <- c(seg1[s], seg2[s])
+    s1 <- c(s1, dist2d(x0, x1, x2))
+  }
+  s2 <- c()
+  for(s in 1:length(seg2)) {
+    x0 <- c(seg2[s], seg3[s])
+    s2 <- c(s2, dist2d(x0, x1, x2))
+  }
+  s3 <- c()
+  for(s in 1:length(seg3)) {
+    x0 <- c(seg3[s], seg1[s])
+    s3 <- c(s3, dist2d(x0, x1, x2))
+  }
+  nseg <- length(s1)
   ### test for differences in 2D plasticity between seg. and random variants
   t1 <- wilcox.test(x = m1, y = s1, exact = F)
   t2 <- wilcox.test(x = m2, y = s2, exact = F)
@@ -1168,6 +1201,11 @@ pdf(file = "SupplementaryFigure_3.pdf", width = 12, height = 12)
           title = 'Promoter set')
 
 dev.off()
+
+### define points in 3D on an isospline to use when
+### calculating the distance of datapoints from the isospline
+x1 <- rep(2, 3)
+x2 <- rep(5, 3)
 
 ### produce Supplementary Figure 5 (checking whether
 ### lower number of random lacZ variants could result

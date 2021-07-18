@@ -138,7 +138,7 @@ p <- 1
 s <- 1
 n <- 1
 ### change nseg variable to number of segregating variants instead
-nseg <- c(18, 25, 12, 7, 20, 10, 4, 3, 16)
+nseg <- c(18, 25, 12, 7, 19, 10, 4, 3, 16)
 for (path in data.path) {
   ### extract info about last directory and growth condition
   end.dir <- unlist(strsplit(path, split = '/', fixed = T))[ndir]
@@ -151,9 +151,17 @@ for (path in data.path) {
     data.m <- read.csv(paste0(path, 'Peaks.csv'), header = T)
     data.m <- data.m[, -1]
     data.m <- data.m[which(!is.na(data.m))]
+    if (grepl('Mtr', path)) {
+      data <- c(data.m[1:5], data.m[7:length(data.m)])
+      data.m <- data
+    }
     data.n <- read.csv(paste0(path, 'Cvs.csv'), header = T)
     data.n <- data.n[, -1]
     data.n <- data.n[which(!is.na(data.n))]
+    if (grepl('Mtr', path)) {
+      data <- c(data.n[1:5], data.n[7:length(data.n)])
+      data.n <- data
+    }
     df <- cbind(data.m[1:nseg[s]], data.n[1:nseg[s]])
     seg.ls[[paste0(prom, '_', cond, '_')]] <- df
     ### save values for offset calculation (in both
@@ -252,6 +260,11 @@ for (pr in proms) {
   args <- offnames[which(grepl(pr, offnames))]
   for (a in args) {
     seg.ok <- seg.ls[[a]][, 1]
+    ### remove MG1655 variant of mtr promoter from calculation (SNP in GFP)
+    if (grepl('Mtr', a)) {
+      ok <- seg.ok[1:(length(seg.ok) - 1)]
+      seg.ok <- ok
+    }
     vals <- c(sd(seg.ok), median(seg.ok))
     names(vals) <- c('range', 'median')
     ranges[[a]] <- vals
@@ -818,6 +831,11 @@ pdf(file = 'Figure_5.pdf', width = 9, height = 7)
       mall <- as.numeric(mall) - offset.m[a]
       ### get modal expression value for seg. variants
       sall <- seg.ls[[a]][, 1]
+      ### remove MG1655 variant of mtr promoter from calculation (SNP in GFP)
+      if (grepl('Mtr', a)) {
+        ok <- sall[1:(length(sall) - 1)]
+        sall <- ok
+      }
       ### combine both variant groups to allow comparison of variances
       dat <- c(sall, mall)
       grp <- c(rep('A', length(sall)), rep('B', length(mall)))
@@ -834,10 +852,15 @@ pdf(file = 'Figure_5.pdf', width = 9, height = 7)
         points(jitter(rep(n + 0.2, length(mall)), factor = c(3:1)[n]), mall,
               pch = 16, col = alpha('red', 0.2))
       }
-      points(jitter(rep(n - 0.2, (length(sall) - 1)), factor = c(3:1)[n]), sall[1:length(sall) - 1],
-            pch = 16, col = alpha('black', 0.2))
-      points(n - 0.2, sall[length(sall)],
-            pch = 16, col = alpha('green', 0.75))
+      if (grepl('Mtr', a)) {
+        points(jitter(rep(n - 0.2, length(sall)), factor = c(3:1)[n]), sall,
+              pch = 16, col = alpha('black', 0.2))
+      } else {
+        points(jitter(rep(n - 0.2, (length(sall) - 1)), factor = c(3:1)[n]), sall[1:length(sall) - 1],
+              pch = 16, col = alpha('black', 0.2))
+        points(n - 0.2, sall[length(sall)],
+              pch = 16, col = alpha('green', 0.75))
+      }
       if (test$p.value <= (0.05 / 3)) {
         text(x = n, y = 4.9, labels = signif(test$p.value, digit = 2), font = 4)
       } else {
@@ -970,6 +993,15 @@ pdf(file = "Figure_6c.pdf", width = 9, height = 5)
     seg1 <- seg.ls[[a]][, 1]
     seg2 <- seg.ls[[b]][, 1]
     seg3 <- seg.ls[[c]][, 1]
+    ### remove MG1655 variant of mtr promoter from calculation (SNP in GFP)
+    if (grepl('Mtr', pr)) {
+      ok <- seg1[1:(length(seg1) - 1)]
+      seg1 <- ok
+      ok <- seg2[1:(length(seg2) - 1)]
+      seg2 <- ok
+      ok <- seg3[1:(length(seg3) - 1)]
+      seg3 <- ok
+    }
     seg <- c()
     ### loop through each seg. variant and calculate
     ### its minimal distance from isospline (= plasticity)
@@ -991,8 +1023,13 @@ pdf(file = "Figure_6c.pdf", width = 9, height = 5)
     }
     points(jitter(rep(n + 0.2, nmut), factor = 4 / n), mut,
             col = alpha('red', 0.2), pch = 16)
-    points(n - 0.2, seg[nseg],
-            col = alpha('green', 0.75), pch = 16)
+    if (grepl('Mtr', pr)) {
+      points(n - 0.2, seg[nseg],
+              col = alpha('black', 0.2), pch = 16)
+    } else {
+      points(n - 0.2, seg[nseg],
+              col = alpha('green', 0.75), pch = 16)
+    }
     arrows(c(n - 0.3, n + 0.1), c(median(seg, na.rm = T), median(mut, na.rm = T)),
           c(n - 0.1, n + 0.3), c(median(seg, na.rm = T), median(mut, na.rm = T)), length = 0)
     if (test$p.value <= 0.05) {
@@ -1243,6 +1280,15 @@ pdf(file = "SupplementaryFigure_5.pdf", width = 9, height = 5)
     seg1 <- seg.ls[[a]][, 1]
     seg2 <- seg.ls[[b]][, 1]
     seg3 <- seg.ls[[c]][, 1]
+    ### remove MG1655 variant of mtr promoter from calculation (SNP in GFP)
+    if (grepl('Mtr', pr)) {
+      ok <- seg1[1:(length(seg1) - 1)]
+      seg1 <- ok
+      ok <- seg2[1:(length(seg2) - 1)]
+      seg2 <- ok
+      ok <- seg3[1:(length(seg3) - 1)]
+      seg3 <- ok
+    }
     seg <- c()
     ### loop through each seg. variant and calculate
     ### its minimal distance from isospline (= plasticity)
@@ -1262,17 +1308,19 @@ pdf(file = "SupplementaryFigure_5.pdf", width = 9, height = 5)
     ### plotting
     if (pr == names(prom.pss)[1]) {
       plot(jitter(rep(n, 1000), factor = 10 / n), tests,
-              xaxt = 'n', xlim = c(0.5, 10.5), ylim = c(1*10^-10, 1), log = 'y',
-              col = alpha('blue', 0.2), pch = 16, xlab = '', ylab = '', cex = 0.3)
+              xaxt = 'n', xlim = c(0.5, 10.5), ylim = c(1*10^-12, 1), log = 'y',
+              col = alpha('royalblue', 0.2), pch = 16, xlab = '', ylab = '', cex = 0.3)
     } else {
       points(jitter(rep(n, 1000), factor = 10 / n), tests,
-              col = alpha('blue', 0.2), pch = 16, cex = 0.3)
+              col = alpha('royalblue', 0.2), pch = 16, cex = 0.3)
     }
-    abline(h = 0.05, lty = 2, col = 'red')
-    abline(h = 0.01, lty = 2, col = 'red')
-    abline(h = 0.001, lty = 2, col = 'red')
-    abline(h = 0.0001, lty = 2, col = 'red')
+    test <- wilcox.test(x = mut, y = seg, exact = F)
+    arrows(n - 0.2, test$p.value, n + 0.2, test$p.value, length = 0)
   }
+  abline(h = 0.05, lty = 2, col = 'red')
+  abline(h = 0.01, lty = 2, col = 'red')
+  abline(h = 0.001, lty = 2, col = 'red')
+  abline(h = 0.0001, lty = 2, col = 'red')
   axis(side = 1, at = c(1:10), labels = parse(text = sprintf('italic(%s)', prom.pss)))
   title(ylab = 'P-value', line = 3.5)
 
@@ -1340,7 +1388,13 @@ pdf(file = 'SupplementaryFigure_4.pdf', width = 9, height = 7)
       ### without NAs for smooth spline calculation
       mut <- mut[complete.cases(mut),]
       ### calculate the smooth spline
-      li <- smooth.spline(c(mut[, 1], seg.ls[[a]][, 1]), c(mut[, 2], seg.ls[[a]][, 2]), lambda = 0.01)
+      ### remove MG1655 variant of mtr promoter from calculation (SNP in GFP)
+      if (grepl('Mtr', a)) {
+        li <- smooth.spline(c(mut[, 1], seg.ls[[a]][1:(length(seg.ls[[a]][, 1]) - 1), 1]),
+                            c(mut[, 2], seg.ls[[a]][1:(length(seg.ls[[a]][, 2]) - 1), 2]), lambda = 0.01)
+      } else {
+        li <- smooth.spline(c(mut[, 1], seg.ls[[a]][, 1]), c(mut[, 2], seg.ls[[a]][, 2]), lambda = 0.01)
+      }
       ### predict coefficient of variation levels for each observed
       ### expression level from the calculated smooth spline
       fit <- predict(li, c(mut[, 1], seg.ls[[a]][, 1]))
@@ -1364,8 +1418,14 @@ pdf(file = 'SupplementaryFigure_4.pdf', width = 9, height = 7)
       } else {
         points(mut[, 1], mut[, 2], pch = 16, col = alpha(cols[a], 0.3))
       }
-      points(seg.ls[[a]][, 1], seg.ls[[a]][, 2],
-            pch = 21, bg = alpha(cols[a], 0.3), col = 'black')
+      if (grepl('Mtr', a)) {
+        points(seg.ls[[a]][1:(length(seg.ls[[a]][, 1]) - 1), 1],
+              seg.ls[[a]][1:(length(seg.ls[[a]][, 2]) - 1), 2],
+              pch = 21, bg = alpha(cols[a], 0.3), col = 'black')
+      } else {
+        points(seg.ls[[a]][, 1], seg.ls[[a]][, 2],
+              pch = 21, bg = alpha(cols[a], 0.3), col = 'black')
+      }
       lines(predict(li), col = cols[a], pch = '.')
     }
     for (i in 1:3) {
@@ -1432,6 +1492,11 @@ pdf(file = "Figure_7a.pdf", width = 9, height = 7)
       mut <- noi[[a]][1:nmut]
       seg <- noi[[a]][nmut + 1:length(noi[[a]])]
       seg <- seg[complete.cases(seg)]
+      ### remove MG1655 variant of mtr promoter from calculation (SNP in GFP)
+      if (grepl('Mtr', a)) {
+        ok <- seg[1:(length(seg) - 1)]
+        seg <- ok
+      }
       nseg <- length(seg)
       ### test the significance of difference in noise
       ### levels between seg. and random variants
@@ -1448,8 +1513,13 @@ pdf(file = "Figure_7a.pdf", width = 9, height = 7)
       }
       points(jitter(rep(n + 0.2, nmut), factor = c(3:1)[n]), mut,
               col = alpha('red', 0.2), pch = 16)
-      points(n - 0.2, seg[nseg],
-              col = alpha('green', 0.75), pch = 16)
+      if (grepl('Mtr', a)) {
+        points(n - 0.2, seg[nseg],
+                col = alpha('black', 0.2), pch = 16)
+      } else {
+        points(n - 0.2, seg[nseg],
+                col = alpha('green', 0.75), pch = 16)
+      }
       arrows(c(n - 0.3, n + 0.1), c(median(seg, na.rm = T), median(mut, na.rm = T)),
             c(n - 0.1, n + 0.3), c(median(seg, na.rm = T), median(mut, na.rm = T)), length = 0)
       if (test$p.value <= (0.05 / 3)) {
@@ -1611,6 +1681,15 @@ par(fig = c(0, 1, 0, 1),
       seg1 <- seg.ls[[a]][, 1]
       seg2 <- seg.ls[[b]][, 1]
       seg3 <- seg.ls[[c]][, 1]
+      ### remove MG1655 variant of mtr promoter from calculation (SNP in GFP)
+      if (grepl('Mtr', pr)) {
+        ok <- seg1[1:(length(seg1) - 1)]
+        seg1 <- ok
+        ok <- seg2[1:(length(seg2) - 1)]
+        seg2 <- ok
+        ok <- seg3[1:(length(seg3) - 1)]
+        seg3 <- ok
+      }
       seg <- c()
       ### calculate 3D plasticity for seg. variants
       for (s in 1:length(seg1)) {
@@ -1622,14 +1701,21 @@ par(fig = c(0, 1, 0, 1),
       mutN1 <- noi[[a]][1:nmut]
       segN1 <- noi[[a]][nmut + 1:length(noi[[a]])]
       segN1 <- segN1[complete.cases(segN1)]
-      nmut <- length(mut.ls[[b]][, 3])
       mutN2 <- noi[[b]][1:nmut]
       segN2 <- noi[[b]][nmut + 1:length(noi[[b]])]
       segN2 <- segN2[complete.cases(segN2)]
-      nmut <- length(mut.ls[[c]][, 3])
       mutN3 <- noi[[c]][1:nmut]
       segN3 <- noi[[c]][nmut + 1:length(noi[[c]])]
       segN3 <- segN3[complete.cases(segN3)]
+      ### remove MG1655 variant of mtr promoter from calculation (SNP in GFP)
+      if (grepl('Mtr', pr)) {
+        ok <- segN1[1:(length(segN1) - 1)]
+        segN1 <- ok
+        ok <- segN2[1:(length(segN2) - 1)]
+        segN2 <- ok
+        ok <- segN3[1:(length(segN3) - 1)]
+        segN3 <- ok
+      }
       ### calculate expression z-scores for 1st environment
       seg.sd <- sd(seg1)
       seg.md <- mean(seg1)
@@ -1714,8 +1800,13 @@ par(fig = c(0, 1, 0, 1),
       }
       points(jitter(rep(n + 0.2, nmut), factor = 4 / n), mutZ,
               col = alpha('red', 0.2), pch = 16)
-      points(n - 0.2, segZ[nseg],
-              col = alpha('green', 0.75), pch = 16)
+      if (grepl('Mtr', pr)) {
+        points(n - 0.2, segZ[nseg],
+                col = alpha('black', 0.2), pch = 16)
+      } else {
+        points(n - 0.2, segZ[nseg],
+                col = alpha('green', 0.75), pch = 16)
+      }
       arrows(c(n - 0.3, n + 0.1), c(median(segZ, na.rm = T), median(mutZ, na.rm = T)),
             c(n - 0.1, n + 0.3), c(median(segZ, na.rm = T), median(mutZ, na.rm = T)), length = 0)
       if (test$p.value < 0.05) {

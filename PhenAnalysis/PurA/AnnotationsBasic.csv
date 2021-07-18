@@ -1,8 +1,0 @@
-name,structure,start,end,color
-yjeT,gene,1,80,yellow
--35,sigma70,125,130,grey
--10,sigma70,148,153,grey
-PurR,TF,63,78,red
-MarA,TF,108,127,red
-PurR,TF,162,177,red
-purA,gene,184,270,yellow

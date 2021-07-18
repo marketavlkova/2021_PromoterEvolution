@@ -1,9 +1,0 @@
-name,structure,start,end,color
-deaD,gene,1,83,yellow
--35,sigma70,154,159,grey
--10,sigma70,181,186,grey
-TrpR,TF,174,191,red
-TrpR,TF,166,183,red
-TyrR,TF,109,126,green
-TyrR,TF,79,96,green
-mtr,gene,237,324,yellow

@@ -3,3 +3,7 @@
 *.sla
 *.fasta
 *.fsa
+*.fcs
+*.csv
+*.phy
+*.tar.gz

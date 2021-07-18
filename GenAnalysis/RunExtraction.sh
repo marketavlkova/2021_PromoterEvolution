@@ -33,9 +33,11 @@ printf "Removing duplications\n"
 ./DuplRemoval.R output/*genes.fasta output/Genes_refs.fasta
 
 ### STEP 4:
-### extract zip file with genomes of env. strains
+### get genome files of environmental strains from Figshare
 cd input
+wget --content-disposition https://ndownloader.figshare.com/files/28871856
 tar -xzvf genomes.tar.gz
+rm genomes.tar.gz
 cd -
 ### create input/Database directory if it doesn't exist
 if [ ! -d "./input/Database" ]

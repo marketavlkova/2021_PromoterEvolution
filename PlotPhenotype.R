@@ -1094,7 +1094,7 @@ dev.off()
 x1 <- rep(2, 2)
 x2 <- rep(5, 2)
 
-### produce Figure 63 (comparing plasticity in 2D
+### produce Figure 6e (comparing plasticity in 2D
 ### of dctA promoter between seg. and random variants)
 cat(paste('Producing Figure 6e\n'))
 pdf(file = "Figure_6e.pdf", width = 5, height = 5)
@@ -1647,7 +1647,6 @@ dev.off()
 ################### FIGURE 8 #####################
 ##################################################
 
-prom.tests <- list()
 ### produce Figure 8 (comparing summed z-scores
 ### between seg. and random variants)
 cat(paste('Producing Figure 8\n'))

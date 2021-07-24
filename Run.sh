@@ -1,7 +1,7 @@
 #!/bin/bash
 ### Workflow script for analysis of fluorescence data
 ### optimized to run on MacOS High Sierra 10.13.6, using: Python 3.9.1, R 4.0.3
-### created by Marketa Vlkova in 29-June-2021
+### created by Marketa Vlkova in 25-July-2021
 ### example to run: ./Run.sh
 
 ### STEP 1:

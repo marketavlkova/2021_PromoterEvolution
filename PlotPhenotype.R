@@ -779,7 +779,7 @@ for (pr in names(prom.pss)) {
     }
   }
 }
-### test for differences in the fold change sizes (Fligner-Kileen test of homogeneity of variances)
+### test for differences in the fold change sizes
 test <- wilcox.test(x = annTrue, y = annFalse, alternative = 'greater')
 cat(paste0('The fold-changes in expression due to single SNPs are larger inside RNAP and TF binding sites (',
           round(median(annTrue), digits = 2),
@@ -1239,93 +1239,6 @@ pdf(file = "SupplementaryFigure_3.pdf", width = 12, height = 12)
 
 dev.off()
 
-### define points in 3D on an isospline to use when
-### calculating the distance of datapoints from the isospline
-x1 <- rep(2, 3)
-x2 <- rep(5, 3)
-
-### produce Supplementary Figure 5 (checking whether
-### lower number of random lacZ variants could result
-### in non-significant changes in plasticity between
-### seg. and random variants)
-cat(paste('Producing Supplementary Figure 5\n'))
-pdf(file = "SupplementaryFigure_5.pdf", width = 9, height = 5)
-  par(las = 1,
-      mar = c(5.1, 5.1, 4.1, 2.1))
-
-  ### loop through all promoters
-  for (n in 1:length(names(prom.pss))) {
-    pr <- names(prom.pss)[n]
-    ### extract info about all three environments
-    args <- offnames[which(grepl(pr, offnames))]
-    a <- args[1]
-    b <- args[2]
-    c <- args[3]
-    ### get values from random variants and
-    ### correct them using offset values
-    mut1 <- mut.ls[[a]][, 3]
-    mut1 <- as.numeric(mut1) - offset.m[a]
-    mut2 <- mut.ls[[b]][, 3]
-    mut2 <- as.numeric(mut2) - offset.m[b]
-    mut3 <- mut.ls[[c]][, 3]
-    mut3 <- as.numeric(mut3) - offset.m[c]
-    mut <- c()
-    ### loop through each random variant and calculate
-    ### its minimal distance from isospline (= plasticity)
-    for (m in 1:length(mut1)) {
-      x0 <- c(mut1[m], mut2[m], mut3[m])
-      mut <- c(mut, dist3d(x0, x1, x2))
-    }
-    ### get values from seg. variants
-    seg1 <- seg.ls[[a]][, 1]
-    seg2 <- seg.ls[[b]][, 1]
-    seg3 <- seg.ls[[c]][, 1]
-    ### remove MG1655 variant of mtr promoter from calculation (SNP in GFP)
-    if (grepl('Mtr', pr)) {
-      ok <- seg1[1:(length(seg1) - 1)]
-      seg1 <- ok
-      ok <- seg2[1:(length(seg2) - 1)]
-      seg2 <- ok
-      ok <- seg3[1:(length(seg3) - 1)]
-      seg3 <- ok
-    }
-    seg <- c()
-    ### loop through each seg. variant and calculate
-    ### its minimal distance from isospline (= plasticity)
-    for(s in 1:length(seg1)) {
-      x0 <- c(seg1[s], seg2[s], seg3[s])
-      seg <- c(seg, dist3d(x0, x1, x2))
-    }
-    tests <- c()
-    ### boothstrap 1000 times while subsampling random
-    ### variants to 29 and testing significance of
-    ### difference between seg. and subsampled random variants
-    for (sub in 1:1000) {
-      sample <- sample(mut, size = 29, replace = F)
-      test <- wilcox.test(x = sample, y = seg, exact = F)
-      tests <- c(tests, test$p.value)
-    }
-    ### plotting
-    if (pr == names(prom.pss)[1]) {
-      plot(jitter(rep(n, 1000), factor = 10 / n), tests,
-              xaxt = 'n', xlim = c(0.5, 10.5), ylim = c(1*10^-12, 1), log = 'y',
-              col = alpha('royalblue', 0.2), pch = 16, xlab = '', ylab = '', cex = 0.3)
-    } else {
-      points(jitter(rep(n, 1000), factor = 10 / n), tests,
-              col = alpha('royalblue', 0.2), pch = 16, cex = 0.3)
-    }
-    test <- wilcox.test(x = mut, y = seg, exact = F)
-    arrows(n - 0.2, test$p.value, n + 0.2, test$p.value, length = 0)
-  }
-  abline(h = 0.05, lty = 2, col = 'red')
-  abline(h = 0.01, lty = 2, col = 'red')
-  abline(h = 0.001, lty = 2, col = 'red')
-  abline(h = 0.0001, lty = 2, col = 'red')
-  axis(side = 1, at = c(1:10), labels = parse(text = sprintf('italic(%s)', prom.pss)))
-  title(ylab = 'P-value', line = 3.5)
-
-dev.off()
-
 ##################################################
 ################# MEAN-CV PLOTS ##################
 ############ SUPP FIGURE 4 & FIGURE 7 ############
@@ -1647,6 +1560,11 @@ dev.off()
 ################### FIGURE 8 #####################
 ##################################################
 
+### define points in 3D on an isospline to use when
+### calculating the distance of datapoints from the isospline
+x1 <- rep(2, 3)
+x2 <- rep(5, 3)
+
 ### produce Figure 8 (comparing summed z-scores
 ### between seg. and random variants)
 cat(paste('Producing Figure 8\n'))
@@ -1932,5 +1850,103 @@ par(fig = c(0.05, 0.35, 0.37, 0.94),
     }
   }
   axis(side = 1, padj = -1, at = c(1:2), labels = parse(text = sprintf('italic(%s)', c('aceB', 'purA'))), cex.axis = 0.7)
+
+dev.off()
+
+##################################################
+################## CELL GATING ###################
+################# SUPP FIGURE 5 ##################
+##################################################
+
+### produce Supplementary Figure 5 (gating example)
+cat(paste('Producing Supplementary Figure 5\n'))
+pdf(file = "SupplementaryFigure_5.pdf", width = 12, height = 3)
+  par(las = 1, xpd = NA,
+      mar = c(4, 4, 2, 1),
+      mfrow = c(1, 4))
+
+    ### get all files names ending with .fsc
+    Files <- Sys.glob(paste0(data.path[1], '*.fcs'))
+    ### read sample data file
+    data <- read.FCS(Files[5], alter.names = T)
+    ### indentify values for xlim and ylim
+    xs <- c(min(log10(as.vector(exprs(data$FSC.H)))),
+            max(log10(as.vector(exprs(data$FSC.H)))))
+    ys <- c(min(log10(as.vector(exprs(data$SSC.H)))),
+            max(log10(as.vector(exprs(data$SSC.H)))))
+    ### plot raw data of forward and side scatter
+    plot(log10(as.vector(exprs(data$FSC.H))),
+          log10(as.vector(exprs(data$SSC.H))),
+          main = 'Raw Data', xlab = '', ylab = '',
+          pch = '.', xlim = xs, ylim = ys,
+          col = alpha('black', 0.1))
+    title(xlab = 'FSC.H (log10, a.u.)', line = 2.5)
+    title(ylab = 'SSC.H (log10, a.u.)', line = 2.5)
+    text(2, 5.6, 'a', cex = 1.5, font = 2)
+    mtext(text = paste(' n =', length(as.vector(exprs(data$FSC.H)))),
+          side = 3, adj = 0, line = -1, cex = 0.75)
+
+    ### get max kernel density values from scatter values
+    fsc.dens <- density(as.vector(exprs(data$FSC.H)))
+    ssc.dens <- density(as.vector(exprs(data$SSC.H)))
+    fypeak <- which.max(fsc.dens$y)
+    sypeak <- which.max(ssc.dens$y)
+    f.peak <- fsc.dens$x[fypeak]
+    s.peak <- ssc.dens$x[sypeak]
+    ### plot raw data with the highest kernel density point
+    plot(log10(as.vector(exprs(data$FSC.H))),
+          log10(as.vector(exprs(data$SSC.H))),
+          main = 'Highest kernel density detection', xlab = '', ylab = '',
+          pch = '.', xlim = xs, ylim = ys,
+          col = alpha('black', 0.1))
+    title(xlab = 'FSC.H (log10, a.u.)', line = 2.5)
+    title(ylab = 'SSC.H (log10, a.u.)', line = 2.5)
+    text(2, 5.6, 'b', cex = 1.5, font = 2)
+    mtext(text = paste(' n =', length(as.vector(exprs(data$FSC.H)))),
+          side = 3, adj = 0, line = -1, cex = 0.75)
+    points(log10(f.peak), log10(s.peak), pch = '+',
+            col = 'red')
+
+    ### create rectangle gate at based on the kernel density
+    pregate <- rectangleGate("FSC.H" = c(f.peak - 2000, f.peak + 15000),
+                            "SSC.H" = c(s.peak - 2000, s.peak + 6000))
+    filt <- filter(data, pregate)
+    data <- Subset(data, filt)
+    ### plot remaining events
+    plot(log10(as.vector(exprs(data$FSC.H))),
+          log10(as.vector(exprs(data$SSC.H))),
+          main = 'Outlier removal', xlab = '', ylab = '',
+          pch = '.', xlim = xs, ylim = ys,
+          col = alpha('black', 0.1))
+    title(xlab = 'FSC.H (log10, a.u.)', line = 2.5)
+    title(ylab = 'SSC.H (log10, a.u.)', line = 2.5)
+    text(2, 5.6, 'c', cex = 1.5, font = 2)
+    mtext(text = paste(' n =', length(as.vector(exprs(data$FSC.H)))),
+          side = 3, adj = 0, line = -1, cex = 0.75)
+    points(log10(f.peak), log10(s.peak), pch = '+',
+            col = 'red')
+
+    ### then create an elipse gate from cells filtered by rectangle gate
+    FSC.H <- as.vector(exprs(data$FSC.H))
+    SSC.H <- as.vector(exprs(data$SSC.H))
+    SC.H <- cbind(FSC.H, SSC.H)
+    cv <- cov(SC.H)                         ### covariance matrix needed for elipse gate definition
+    mn <- c(median(FSC.H), median(SSC.H))   ### mean to define the elipse gate
+    elgate <- ellipsoidGate(.gate = cv, mean = mn, distance = 1)
+    filt <- filter(data, elgate)
+    cells <- Subset(data, filt)
+    ### plot events passing through the final gate
+    plot(log10(as.vector(exprs(cells$FSC.H))),
+          log10(as.vector(exprs(cells$SSC.H))),
+          main = 'Core density gating', xlab = '', ylab = '',
+          pch = '.', xlim = xs, ylim = ys,
+          col = alpha('black', 0.1))
+    title(xlab = 'FSC.H (log10, a.u.)', line = 2.5)
+    title(ylab = 'SSC.H (log10, a.u.)', line = 2.5)
+    text(2, 5.6, 'd', cex = 1.5, font = 2)
+    mtext(text = paste(' n =', length(as.vector(exprs(cells$FSC.H)))),
+          side = 3, adj = 0, line = -1, cex = 0.75)
+    points(log10(f.peak), log10(s.peak), pch = '+',
+            col = 'red')
 
 dev.off()

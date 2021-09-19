@@ -96,7 +96,7 @@ par(las = 1, mar = c(5.1, 4.1, 2.1, 2.1))
   c <- cor.test(proms[, 5][which(proms[, 1] >= 130)],
                 igrs[, 5][which(igrs[, 1] >= 130)],
                 method = 'spearman', exact = F)
-  mtext(text = paste0('R = ', round(c$estimate, digits = 3)), side = 3, line = -1, cex = 0.9)
+  mtext(text = paste0('rho = ', round(c$estimate, digits = 3)), side = 3, line = -1, cex = 0.9)
   mtext(text = paste0('p = ', signif(c$p.value, digits = 2)), side = 3, line = -2, cex = 0.9)
   title(xlab = 'PSS in promoters', line = 2.5)
   title(ylab = 'PSS in IGRs', line = 2.5)
@@ -117,7 +117,7 @@ par(las = 1, mar = c(5.1, 4.1, 2.1, 2.1))
   c <- cor.test(proms[, 4][which(proms[, 1] >= 130)],
                 igrs[, 4][which(igrs[, 1] >= 130)],
                 method = 'spearman', exact = F)
-  mtext(text = paste0('R = ', round(c$estimate, digits = 3)), side = 3, line = -1, cex = 0.9)
+  mtext(text = paste0('rho = ', round(c$estimate, digits = 3)), side = 3, line = -1, cex = 0.9)
   mtext(text = paste0('p = ', signif(c$p.value, digits = 2)), side = 3, line = -2, cex = 0.9)
   title(xlab = '100 - API in promoters', line = 2.5)
   title(ylab = '100 - API in IGRs', line = 2.5)

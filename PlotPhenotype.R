@@ -1354,7 +1354,7 @@ pdf(file = 'SupplementaryFigure_4.pdf', width = 9, height = 7)
       title(xlab = 'Modal expression (log10, a.u.)', line = 2)
     }
     if (pr == names(prom.pss)[1] || pr == names(prom.pss)[5] || pr == names(prom.pss)[9]) {
-      title(ylab = 'Coefficient of variation (stdev/Mode)', line = 3)
+      title(ylab = 'mCV (stdev/mode)', line = 3)
     }
     legend('topright', legend = conds, pch = 16,
             col = c(alpha(cols[1], 0.3), alpha(cols[2], 0.3), alpha(cols[3], 0.3)),

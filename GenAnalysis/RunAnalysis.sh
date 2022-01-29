@@ -37,12 +37,17 @@ printf "Extracting data from MultiFun database files\n"
 ./MultiFunKey.sh 'input/MultiFun/IDs?.txt' output/MultiFunKey.csv output/MultiFunInput.csv
 
 ### STEP 3:
-### produce Supp Figures (1c and 1d) checking variability
-### in promoters with and without flanking ORFs
-printf "Producing Supp Figures 1c and 1d\n"
-./CorrTestPlots.R
+### calculate Pi & Watterson estimator Theta
+printf "Calculating Pi and Watterson estimator Theta"
+./ThetaPi.R
 
 ### STEP 4:
+### produce Supp Figures (1c and 1d) checking variability
+### in promoters with and without flanking ORFs
+printf "Producing Supp Figures 1a and 1b\n"
+./CorrTestPlots.R
+
+### STEP 5:
 ### create list of gene names for function group plots
 printf "Generating list of gene names for function group analysis\n"
 cat output/DataIGRs\&GenesCommon.csv | awk 'BEGIN{
@@ -51,30 +56,30 @@ cat output/DataIGRs\&GenesCommon.csv | awk 'BEGIN{
 }
 {
   N = split($1, L, "");
-  if (L[N-1] ~ /^[0-9]+$/) {
-    M = N - 2;
-  } else if (L[N-2] ~ /^[0-9]+$/) {
-    M = N - 3;
-  } else if ($1 ~ /^"udpP"/) {
-    M = N;
-  } else {
+  if (L[N] ~ /^[0-9]+$/) {
     M = N - 1;
+  } else if (L[N-1] ~ /^[0-9]+$/) {
+    M = N - 2;
+  } else if ($1 ~ /^udpP/) {
+    M = N + 1;
+  } else {
+    M = N;
   }
-  for (I = 2; I < M; I++) {
+  for (I = 1; I < M; I++) {
     printf "%s", L[I];
   }
   printf "\n";
 }' > output/GeneNames.csv
 
-### STEP 5:
+### STEP 6:
 ### produce Figures (1a and Supp 1a) comparing variability
 ### in promoters and their downstream ORFs
-printf "Producing Figure 1a and Supp Figure 1a\n"
+printf "Producing Figure 1a and Figure 1c\n"
 python3 BokehPlot.py
 
-### STEP 6:
+### STEP 7:
 ### produce Figures (1b and Supp 1b) checking whether
 ### any functional groups are enriched for promoters
 ### with high or low variability
-printf "Producing Figure 1b and Supp Figure 1b\n"
+printf "Producing Figure 1b and Figure 1d\n"
 ./FunctionPlots.R

@@ -30,47 +30,47 @@ names(cols) <- names(prom.th)
 ### plotting
 pdf(file = paste0(dir, '/SupplementaryFigure_1a.pdf'), width = 5, height = 5)
 par(las = 1, mar = c(5.1, 4.1, 2.1, 2.1))
-  plot(data[, 8][which(data[, 1] >= 130)],
-        data[, 10][which(data[, 1] >= 130)],
-        xlim = c(0, 0.2), ylim = c(0, 0.2),
+  plot(data[, 'NormIgrTh'][which(data[, 1] >= 130)],
+        data[, 'NormPromTh'][which(data[, 1] >= 130)],
+        xlim = c(0, 0.08), ylim = c(0, 0.08),
         xlab = '', ylab = '', col = alpha('black', 0.25), pch = 16)
   for (pr in names(prom.th)) {
-    points(data[pr, 10], data[pr, 8], col = cols[pr], pch = 16)
+    points(data[pr, 'NormIgrTh'], data[pr, 'NormPromTh'], col = cols[pr], pch = 16)
   }
   abline(0, 1, col = 'red')
-  c <- cor.test(data[, 8][which(data[, 1] >= 130)],
-                data[, 10][which(data[, 1] >= 130)],
+  c <- cor.test(data[, 'NormIgrTh'][which(data[, 1] >= 130)],
+                data[, 'NormPromTh'][which(data[, 1] >= 130)],
                 method = 'spearman', exact = F)
   mtext(text = paste0('rho = ', round(c$estimate, digits = 3)), side = 3, line = -1, cex = 0.9)
   mtext(text = paste0('p = ', signif(c$p.value, digits = 2)), side = 3, line = -2, cex = 0.9)
   title(xlab = expression(paste(theta, ' in intergenic regions')), line = 2.5)
-  title(ylab = expression(paste(theta, ' in promoters')), line = 2.5)
+  title(ylab = expression(paste(theta, ' in promoters')), line = 3)
   legend('topleft', legend = parse(text = sprintf('italic(%s)', prom.th)), col = cols,
           pch = 16, title = 'Promoter', cex = 0.85)
 dev.off()
 
 pdf(file = paste0(dir, '/SupplementaryFigure_1b.pdf'), width = 5, height = 5)
 par(las = 1, mar = c(5.1, 4.1, 2.1, 2.1))
-  plot(data[, 11][which(data[, 1] >= 130)],
-        data[, 13][which(data[, 1] >= 130)],
-        xlim = c(0, 0.15), ylim = c(0, 0.15),
+  plot(data[, 'IgrPi'][which(data[, 1] >= 130)],
+        data[, 'PromPi'][which(data[, 1] >= 130)],
+        xlim = c(0, 0.12), ylim = c(0, 0.12),
         xlab = '', ylab = '', col = alpha('black', 0.25), pch = 16)
   for (pr in names(prom.th)) {
-    points(data[pr, 13], data[pr, 11], col = cols[pr], pch = 16)
+    points(data[pr, 'IgrPi'], data[pr, 'PromPi'], col = cols[pr], pch = 16)
   }
   abline(0, 1, col = 'red')
-  c <- cor.test(data[, 11][which(data[, 1] >= 130)],
-                data[, 13][which(data[, 1] >= 130)],
+  c <- cor.test(data[, 'IgrPi'][which(data[, 1] >= 130)],
+                data[, 'PromPi'][which(data[, 1] >= 130)],
                 method = 'spearman', exact = F)
   mtext(text = paste0('rho = ', round(c$estimate, digits = 3)), side = 3, line = -1, cex = 0.9)
   mtext(text = paste0('p = ', signif(c$p.value, digits = 2)), side = 3, line = -2, cex = 0.9)
   title(xlab = expression(paste(pi, ' in intergenic regions')), line = 2.5)
-  title(ylab = expression(paste(pi, ' in promoters')), line = 2.5)
+  title(ylab = expression(paste(pi, ' in promoters')), line = 3)
   legend('topleft', legend = parse(text = sprintf('italic(%s)', prom.th)), col = cols,
           pch = 16, title = 'Promoter', cex = 0.85)
 dev.off()
 
-c <- cor.test(data[, 11], data[, 8], method = 'spearman', exact = F)
+c <- cor.test(data[, 'IgrPi'], data[, 'PromPi'], method = 'spearman', exact = F)
 cat(paste('Correlation between Pi and Theta in IGRs:',
           round(c$estimate, digits = 4),
           'p-value:', signif(c$p.value, digits = 2)), '\n')

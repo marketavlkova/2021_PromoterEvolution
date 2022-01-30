@@ -37,17 +37,17 @@ colnames(genes) <- c('NoStrains', 'AlignLength', 'NoVariants', 'API', 'SegSites'
 
 ### find promoters that have corresponding gene pulled out
 both_names <- c()
-data <- matrix(, nrow = 0, ncol = 7)
+data <- matrix(, nrow = 0, ncol = 13)
 for (pr in rownames(igrs)) {
   for (ge in rownames(genes)) {
     if (pr == ge) {
       both_names <- c(both_names, pr)
-      data <- rbind(data, c(igrs[pr, 1], igrs[pr, 3], igrs[pr, 4], igrs[pr, 5], genes[pr, 1], genes[pr, 4], genes[pr, 5]))
+      data <- rbind(data, c(igrs[pr, 1:5], genes[pr, 1:2], genes[pr, 4:5], proms[pr, 1:2], proms[pr, 4:5]))
     }
   }
 }
 rownames(data) <- both_names
-colnames(data) <- c('IgrStr', 'IgrVers', 'IgrAPI', 'IgrSS', 'GeneStr', 'GeneAPI', 'GeneSS')
+colnames(data) <- c('IgrStr', 'IgrLen', 'IgrVers', 'IgrAPI', 'IgrSS', 'GeneStr', 'GeneLen', 'GeneAPI', 'GeneSS', 'PromStr', 'PromLen', 'PromAPI', 'PromSS')
 
 ### Theta calculation
 ThetaI <- c()
@@ -56,12 +56,12 @@ ThetaG <- c()
 ### loop through all rows in data
 for (row in 1:length(data[, 1])) {
   ### save number of strains & number of segregating sites
-  ni <- proms[row, 1]
-  np <- data[row, 1]
-  ng <- data[row, 5]
-  Sp <- proms[row, 5]
-  Si <- data[row, 4]
-  Sg <- data[row, 7]
+  ni <- data[row, 'IgrStr']
+  np <- data[row, 'PromStr']
+  ng <- data[row, 'GeneStr']
+  Si <- data[row, 'IgrSS']
+  Sp <- data[row, 'PromSS']
+  Sg <- data[row, 'GeneSS']
   ### calculate harmonic number
   for (i in 1:(ni - 1)) {
     if (i == 1) {
@@ -84,18 +84,18 @@ for (row in 1:length(data[, 1])) {
       a3 <- a3 + (1/i)
     }
   }
-  ThetaI <- c(ThetaI, Si / a1 / igrs[row, 2])
-  ThetaP <- c(ThetaP, Sp / a2 / proms[row, 2])
-  ThetaG <- c(ThetaG, Sg / a3 / genes[row, 2])
+  ThetaI <- c(ThetaI, Si / a1 / data[row, 'IgrLen'])
+  ThetaP <- c(ThetaP, Sp / a2 / data[row, 'PromLen'])
+  ThetaG <- c(ThetaG, Sg / a3 / data[row, 'GeneLen'])
 }
 
 out <- cbind(data, ThetaI, ThetaG, ThetaP)
 colnames(out) <- c(colnames(data), 'NormIgrTh', 'NormGeneTh', 'NormPromTh')
 
 ### Pi caulcation
-igr.pi <- (100 - out[, 3]) / 100
-prom.pi <- (100 - proms[, 4][which(rownames(proms) %in% rownames(out))]) / 100
-gene.pi <- (100 - out[, 6]) / 100
+igr.pi <- (100 - out[, 'IgrAPI']) / 100
+prom.pi <- (100 - out[, 'PromAPI']) / 100
+gene.pi <- (100 - out[, 'GeneAPI']) / 100
 data <- cbind(out, as.vector(igr.pi), as.vector(gene.pi), as.vector(prom.pi))
 colnames(data) <- c(colnames(out), 'IgrPi', 'GenePi', 'PromPi')
 
@@ -106,7 +106,7 @@ write.csv(data, file = 'output/DataIGRs&Genes.csv', row.names = T)
 prs <- c()
 common <- matrix(, nrow = 0, ncol = length(data[1, ]))
 for (pr in 1:length(data[, 1])) {
-  if (data[pr, 1] >= 130 && data[pr, 5] >= 130) {
+  if (data[pr, 'PromStr'] >= 130 && data[pr, 'GeneStr'] >= 130) {
     prs <- c(prs, rownames(data)[pr])
     common <- rbind(common, data[pr,])
   }

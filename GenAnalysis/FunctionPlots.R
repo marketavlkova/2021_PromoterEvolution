@@ -1,5 +1,5 @@
 #!/usr/local/bin/Rscript
-### Script plotting Figure 1b and Supp Figure 1b
+### Script plotting Figure 1c and 1d
 ### example of use: ./FunctionPlots.R
 
 library('scales')
@@ -53,8 +53,8 @@ for (bc in clear[, 3]) {
 }
 
 ### create a list item for each function group
-lib.pss <- list()
-lib.api <- list()
+lib.th <- list()
+lib.pi <- list()
 for (bc in bc0) {
   pss <- c()
   api <- c()
@@ -64,82 +64,82 @@ for (bc in bc0) {
       api <- c(api, clear[row, 4])
     }
   }
-  lib.pss[[bc]] <- pss
-  lib.api[[bc]] <- api
+  lib.th[[bc]] <- pss
+  lib.pi[[bc]] <- api
 }
 
 ### compare each function group to the rest of the dataset
-pvals.pss <- c()
-pvals.api <- c()
-for (l in names(lib.pss)) {
-  query.pss <- lib.pss[[l]]
-  query.api <- lib.api[[l]]
-  rest.pss <- c()
-  rest.api <- c()
-  for (ll in names(lib.pss)) {
+pvals.th <- c()
+pvals.pi <- c()
+for (l in names(lib.th)) {
+  query.th <- lib.th[[l]]
+  query.pi <- lib.pi[[l]]
+  rest.th <- c()
+  rest.pi <- c()
+  for (ll in names(lib.th)) {
     if (l != ll) {
-      rest.pss <- c(rest.pss, lib.pss[[ll]])
-      rest.api <- c(rest.api, lib.api[[ll]])
+      rest.th <- c(rest.th, lib.th[[ll]])
+      rest.pi <- c(rest.pi, lib.pi[[ll]])
     }
   }
-  wt.pss <- wilcox.test(x = query.pss, y = rest.pss)
-  pvals.pss <- c(pvals.pss, wt.pss$p.value)
-  wt.api <- wilcox.test(x = query.api, y = rest.api)
-  pvals.api <- c(pvals.api, wt.api$p.value)
+  wt.th <- wilcox.test(x = query.th, y = rest.th)
+  pvals.th <- c(pvals.th, wt.th$p.value)
+  wt.pi <- wilcox.test(x = query.pi, y = rest.pi)
+  pvals.pi <- c(pvals.pi, wt.pi$p.value)
 }
-names(pvals.pss) <- names(lib.pss)
-names(pvals.api) <- names(lib.api)
+names(pvals.th) <- names(lib.th)
+names(pvals.pi) <- names(lib.pi)
 
 ### plotting
 cols <- c('blue', 'orange', 'green', 'red', 'purple',
           'saddlebrown', 'pink', 'grey', 'yellowgreen',
           'cyan')
-pdf(file = paste0(dir, '/Figure_1b.pdf'), width = 5, height = 5)
+pdf(file = paste0(dir, '/Figure_1c.pdf'), width = 5, height = 5)
 par(las = 1, mar = c(5.1, 7, 2.1, 2.1))
   for (l in 1:10) {
-    len <- length(lib.pss[[l]])
+    len <- length(lib.th[[l]])
     if (l == 1) {
-      plot(lib.pss[[l]], jitter(rep(l, len), factor = (10 / l)),
-          xlim = c(0, 0.45), ylim = c(0.75, 10.25),
+      plot(lib.th[[l]], jitter(rep(l, len), factor = (10 / l)),
+          xlim = c(0, 0.086), ylim = c(0.75, 10.25),
           yaxt = 'n', xaxt = 'n', pch = 16, col = alpha(cols[l], 0.4),
           xlab = '', ylab = '', cex = 0.8)
     } else {
-      points(lib.pss[[l]], jitter(rep(l, len), factor = (10 / l)),
+      points(lib.th[[l]], jitter(rep(l, len), factor = (10 / l)),
             pch = 16, col = alpha(cols[l], 0.4), cex = 0.8)
     }
-    if (pvals.pss[l] <= (0.05 / 10)) {
-      text(x = 0.425, y = l, labels = signif(pvals.pss[l], digits = 2), font = 4)
+    if (pvals.th[l] <= (0.05 / 10)) {
+      text(x = 0.08, y = l, labels = signif(pvals.th[l], digits = 2), font = 4)
     } else {
-      text(x = 0.425, y = l, labels = signif(pvals.pss[l], digits = 2))
+      text(x = 0.08, y = l, labels = signif(pvals.th[l], digits = 2))
     }
-    arrows(median(lib.pss[[l]]), l - 0.25, median(lib.pss[[l]]), l + 0.25, length = 0)
+    arrows(median(lib.th[[l]]), l - 0.25, median(lib.th[[l]]), l + 0.25, length = 0)
   }
-  axis(side = 1, at = seq(0, 0.4, by = 0.1), labels = seq(0, 0.4, by = 0.1), cex.axis = 0.75)
-  axis(side = 2, at = c(1:10), labels = names(lib.pss), cex.axis = 0.75)
-  title(xlab = 'Proportion of segregating sites in IGRs', line = 2, cex.lab = 0.8)
+  axis(side = 1, at = seq(0, 0.086, by = 0.02), labels = seq(0, 0.086, by = 0.02), cex.axis = 0.75)
+  axis(side = 2, at = c(1:10), labels = names(lib.th), cex.axis = 0.75)
+  title(xlab = expression(paste(theta, ' in intergenic regions')), line = 2, cex.lab = 0.8)
 dev.off()
 
-pdf(file = paste0(dir, '/SupplementaryFigure_1b.pdf'), width = 5, height = 5)
+pdf(file = paste0(dir, '/Figure_1d.pdf'), width = 5, height = 5)
 par(las = 1, mar = c(5.1, 7, 2.1, 2.1))
   for (l in 1:10) {
-    len <- length(lib.api[[l]])
+    len <- length(lib.pi[[l]])
     if (l == 1) {
-      plot(lib.api[[l]], jitter(rep(l, len), factor = (10 / l)),
-          xlim = c(0, 14), ylim = c(0.75, 10.25),
+      plot(lib.pi[[l]], jitter(rep(l, len), factor = (10 / l)),
+          xlim = c(0, 0.15), ylim = c(0.75, 10.25),
           yaxt = 'n', xaxt = 'n', pch = 16, col = alpha(cols[l], 0.4),
           xlab = '', ylab = '', cex = 0.8)
     } else {
-      points(lib.api[[l]], jitter(rep(l, len), factor = (10 / l)),
+      points(lib.pi[[l]], jitter(rep(l, len), factor = (10 / l)),
             pch = 16, col = alpha(cols[l], 0.4), cex = 0.8)
     }
-    if (pvals.api[l] <= (0.05 / 10)) {
-      text(x = 13, y = l, labels = signif(pvals.api[l], digits = 2), font = 4)
+    if (pvals.pi[l] <= (0.05 / 10)) {
+      text(x = 0.14, y = l, labels = signif(pvals.pi[l], digits = 2), font = 4)
     } else {
-      text(x = 13, y = l, labels = signif(pvals.api[l], digits = 2))
+      text(x = 0.14, y = l, labels = signif(pvals.pi[l], digits = 2))
     }
-    arrows(median(lib.api[[l]]), l - 0.25, median(lib.api[[l]]), l + 0.25, length = 0)
+    arrows(median(lib.pi[[l]]), l - 0.25, median(lib.pi[[l]]), l + 0.25, length = 0)
   }
-  axis(side = 1, at = seq(0, 12.5, by = 2), labels = seq(0, 12.5, by = 2), cex.axis = 0.75)
-  axis(side = 2, at = c(1:10), labels = names(lib.api), cex.axis = 0.75)
-  title(xlab = '100 - average pairwise identity in IGRs', line = 2, cex.lab = 0.8)
+  axis(side = 1, at = seq(0, 0.15, by = 0.04), labels = seq(0, 0.15, by = 0.04), cex.axis = 0.75)
+  axis(side = 2, at = c(1:10), labels = names(lib.pi), cex.axis = 0.75)
+  title(xlab = expression(paste(pi, ' in intergenic regions')), line = 2, cex.lab = 0.8)
 dev.off()

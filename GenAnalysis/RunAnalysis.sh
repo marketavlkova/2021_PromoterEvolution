@@ -72,14 +72,14 @@ cat output/DataIGRs\&GenesCommon.csv | awk 'BEGIN{
 }' > output/GeneNames.csv
 
 ### STEP 6:
-### produce Figures (1a and Supp 1a) comparing variability
+### produce Figures (1a and 1b) comparing variability
 ### in promoters and their downstream ORFs
-printf "Producing Figure 1a and Figure 1c\n"
+printf "Producing Figure 1a and Figure 1b\n"
 python3 BokehPlot.py
 
 ### STEP 7:
-### produce Figures (1b and Supp 1b) checking whether
+### produce Figures (1c and 1d) checking whether
 ### any functional groups are enriched for promoters
 ### with high or low variability
-printf "Producing Figure 1b and Figure 1d\n"
+printf "Producing Figure 1c and Figure 1d\n"
 ./FunctionPlots.R

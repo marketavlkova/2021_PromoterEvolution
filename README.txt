@@ -29,6 +29,7 @@ For python scripts:
 'requests'
 'pandas'
 'statistics'
+'matplotlib'
 'io'
 'sys'
 'os'

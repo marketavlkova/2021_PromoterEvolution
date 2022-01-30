@@ -22,6 +22,9 @@ For R scripts:
 'flowCore' package from Bioconductor for flow cytometry data analysis
 'scales' library
 'scatterplot3d' library
+'tibble' library
+'ggplot2' library
+'ggridges' library
 
 For python scripts:
 'Biopython'

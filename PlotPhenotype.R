@@ -5,6 +5,9 @@
 library('flowCore') ### handling FCS files
 library('scales') ### for function alpha
 library('scatterplot3d') ### for 3D plot
+library('tibble')
+library('ggplot2')
+library('ggridges')
 ### incorporate function extracting modal population expression values
 if (!exists('foo', mode = 'function')) source('PeaksEx.R')
 ### incorporate function extracting coefficient of variation values
@@ -48,14 +51,14 @@ short.ls <- list('_glucose_' = 'Glu',
                   '_D-mannose_' = 'Man',
                   '_L-arabinose_' = 'Ara')
 ### create a list of promoters in order
-### from highest PSS to the lowest PSS
-prom.pss <- list('AldA' = 'aldA',
+### from highest Theta to the lowest Theta
+prom.th <- list('AldA' = 'aldA',
                 'YhjX' = 'yhjX',
-                'LacZ' = 'lacZ',
-                'AceB' = 'aceB',
                 'Mtr' = 'mtr',
-                'Cdd' = 'cdd',
+                'AceB' = 'aceB',
+                'LacZ' = 'lacZ',
                 'DctA' = 'dctA',
+                'Cdd' = 'cdd',
                 'PtsG' = 'ptsG',
                 'PurA' = 'purA',
                 'TpiA' = 'tpiA')
@@ -93,6 +96,8 @@ ndir <- length(unlist(strsplit(data.path[1], split = '/', fixed = T)))
 for (path in data.path) {
   setwd(path)
   if (!file.exists('Peaks.csv')) {
+    pdir <- unlist(strsplit(path, split = '/', fixed = T))[ndir - 3]
+    cat(paste('Analazying data from promoter', pdir, '\n'))
     ### extract info about last directory
     end.dir <- unlist(strsplit(path, split = '/', fixed = T))[ndir]
     ### change number of files in seg. promoter dir. accordingly
@@ -275,28 +280,71 @@ for (pr in proms) {
 ### of segregating promoter variants
 varC <- c(18, 25, 12, 7, 20, 20, 10, 4, 3, 16)
 varT <- c(26, 32, 18, 7, 26, 25, 14, 6, 3, 22)
-### save proportion of segregating sites (pss)
-### and average pairwise identity (api) values
-pss <- c(65 / 470, 79 / 398, 29 / 332, 25 / 384, 57 / 324, 47 / 356, 32 / 496, 11 / 305, 7 / 309, 84 / 430)
-api <- c(100 - 97.87, 100 - 96.7, 100 - 98.78, 100 - 99.52, 100 - 96.19, 100 - 97.83, 100 - 99.16, 100 - 99.57, 100 - 99.76, 100 - 95.5)
+### save Theta & Pi values for IGRs
+Th <- c(0.03128615749, 0.04649894747, 0.01402122108, 0.01602425267, 0.02988129083, 0.03669189673, 0.01549964916, 0.01238768076, 0.001703512842, 0.04397005734)
+Pi <- c(0.0268, 0.0463, 0.0057, 0.0021, 0.0282, 0.0341, 0.0123, 0.01, 0.0005, 0.0555)
 names(varC) <- proms
 names(varT) <- proms
-names(pss) <- proms
-names(api) <- proms
+names(Th) <- proms
+names(Pi) <- proms
+
+### create tibble for ridge plots
+ridge <- matrix(, ncol = 6, nrow = 402)
+colnames(ridge) <- c('cond', 'varC', 'varT', 'Th', 'Pi', 'mode')
+i <- 1
+co <- c()
+for (pr in proms) {
+  args <- offnames[which(grepl(pr, offnames))]
+  for (a in args) {
+    seg.ok <- seg.ls[[a]][, 1]
+    for (item in seg.ok) {
+      b <- paste(pr, short.ls[[paste0('_', unlist(strsplit(a, split = '_'))[2], '_')]])
+      ridge[i, ] <- c(b, varC[pr], varT[pr], Th[pr], Pi[pr], item)
+      i <- i + 1
+    }
+    co <- c(co, b)
+  }
+}
+cd <- as.character(ridge[, 1])
+vc <- as.numeric(ridge[, 2])
+vt <- as.numeric(ridge[, 3])
+ps <- as.double(ridge[, 4])
+ai <- as.double(ridge[, 5])
+me <- as.double(ridge[, 6])
+
+ord <- c()
+for (i in 1:length(varT)) {
+  ord <- c(ord, rep(varT[i], 3))
+}
+
+ridge <- tibble(cond = factor(cd, levels = co[order(ord)]),
+                varC = vc, Variants = vt, Th = ps, Pi = ai, mode = me)
+
+cat(paste('Producing Figure 3c\n'))
+pdf(file = 'Figure_3c.pdf', width = 9, height = 7)
+  par(las = 1, mar = c(5.1, 3.1, 2.1, 2.1))
+
+  ggplot(ridge, aes(x = mode, y = cond, fill = Variants)) +
+  geom_density_ridges(alpha = 0.9, stat = 'binline', bins = 60) +
+  theme_ridges() +
+  ylab('') +
+  xlab('Modal expression (log10, a.u.)')
+
+dev.off()
 
 ### create matrix combining all the values
 ### obtained above for each promoter and condition
-mm <- matrix(, ncol = 5, nrow = 30)
+mm <- matrix(, ncol = 6, nrow = 30)
 i <- 1
-for (pr in names(prom.pss)) {
-  row <- c(varC[pr], varT[pr], pss[pr], api[pr])
+for (pr in names(prom.th)) {
+  row <- c(varC[pr], varT[pr], Th[pr], Pi[pr])
   args <- offnames[which(grepl(pr, offnames))]
-  mm[i,] <- c(row, ranges[[args[1]]][1])
-  mm[i+1,] <- c(row, ranges[[args[2]]][1])
-  mm[i+2,] <- c(row, ranges[[args[3]]][1])
+  mm[i,] <- c(row, ranges[[args[1]]][1], ranges[[args[1]]][2])
+  mm[i+1,] <- c(row, ranges[[args[2]]][1], ranges[[args[2]]][2])
+  mm[i+2,] <- c(row, ranges[[args[3]]][1], ranges[[args[3]]][2])
   i <- i + 3
 }
-colnames(mm) <- c('VariantsC', 'VariantsT', 'PSS', 'API', 'SD')
+colnames(mm) <- c('VariantsC', 'VariantsT', 'Th', 'Pi', 'SD', 'Mean')
 rownames(mm) <- c(rep(proms[1], 3), rep(proms[2], 3),
         rep(proms[3], 3), rep(proms[4], 3),
         rep(proms[5], 3), rep(proms[6], 3),
@@ -309,22 +357,22 @@ cols <- c(rep('red', 3), rep('blue', 3), rep('green', 3),
         rep('gold', 3), rep('saddlebrown', 3),
         rep('pink', 3), rep('grey', 3), rep('darkgreen', 3))
 cols.leg <- c('red', 'blue', 'green', 'darkviolet', 'darkorange', 'gold', 'saddlebrown', 'pink', 'grey', 'darkgreen')
-names(cols) <- names(prom.pss)
+names(cols) <- names(prom.th)
 
-### plot Figure 3a (correlation of PSS with stdev
+### plot Figure 3a (correlation of Theta with stdev
 ### in modal expression of seg. variants)
 cat(paste('Producing Figure 3a\n'))
 pdf(file = 'Figure_3a.pdf', width = 5, height = 5)
   par(las = 1, mar = c(5.1, 4.1, 2.1, 2.1))
 
-  plot(x = mm[, 3], y = mm[, 5], xlim = c(0, 0.2), ylim = c(0, 0.3),
+  plot(x = mm[, 3], y = mm[, 5], xlim = c(0, 0.05), ylim = c(0, 0.3),
         xlab = '', ylab = '', col = cols, pch = 16)
   c <- cor.test(mm[, 3], mm[, 5], method = 'spearman', exact = F)
   mtext(text = paste0('rho = ', round(c$estimate, digits = 3)), side = 3, line = -1, cex = 0.9)
   mtext(text = paste0('p = ', signif(c$p.value, digits = 2)), side = 3, line = -2, cex = 0.9)
-  title(xlab = 'Proportion of segregating sites in promoters', line = 2.5)
+  title(xlab = expression(paste(theta, ' in promoters')), line = 2.5)
   title(ylab = 'Stdev in modal expression', line = 3)
-  legend('topleft', legend = parse(text = sprintf('italic(%s)', prom.pss)), col = cols.leg,
+  legend('topleft', legend = parse(text = sprintf('italic(%s)', prom.th)), col = cols.leg,
           pch = 16, title = 'Promoter')
 
 dev.off()
@@ -342,25 +390,25 @@ pdf(file = 'Figure_3b.pdf', width = 5, height = 5)
   mtext(text = paste0('p = ', signif(c$p.value, digits = 2)), side = 3, line = -2, cex = 0.9)
   title(xlab = 'Total number of segregating variants', line = 2.5)
   title(ylab = 'Stdev in modal expression', line = 3)
-  legend('topleft', legend = parse(text = sprintf('italic(%s)', prom.pss)), col = cols.leg,
+  legend('topleft', legend = parse(text = sprintf('italic(%s)', prom.th)), col = cols.leg,
           pch = 16, title = 'Promoter')
 
 dev.off()
 
-### plot Supplementary Figure 2a (correlation of API
+### plot Supplementary Figure 2a (correlation of Pi
 ### with stdev in modal expression of seg. variants)
 cat(paste('Producing Figure 2a\n'))
 pdf(file = 'SupplementaryFigure_2a.pdf', width = 5, height = 5)
   par(las = 1, mar = c(5.1, 4.1, 2.1, 2.1))
 
-  plot(x = mm[, 4], y = mm[, 5], xlim = c(0, 5), ylim = c(0, 0.3),
+  plot(x = mm[, 4], y = mm[, 5], xlim = c(0, 0.06), ylim = c(0, 0.3),
         xlab = '', ylab = '', col = cols, pch = 16)
   c <- cor.test(mm[, 4], mm[, 5], method = 'spearman', exact = F)
   mtext(text = paste0('rho = ', round(c$estimate, digits = 3)), side = 3, line = -1, cex = 0.9)
   mtext(text = paste0('p = ', signif(c$p.value, digits = 2)), side = 3, line = -2, cex = 0.9)
-  title(xlab = '100 - Average pairwise identity in promoters', line = 2.5)
+  title(xlab = expression(paste(pi, ' in promoters')), line = 2.5)
   title(ylab = 'Stdev in modal expression', line = 3)
-  legend('topleft', legend = parse(text = sprintf('italic(%s)', prom.pss)), col = cols.leg,
+  legend('topleft', legend = parse(text = sprintf('italic(%s)', prom.th)), col = cols.leg,
           pch = 16, title = 'Promoter')
 
 dev.off()
@@ -378,7 +426,7 @@ pdf(file = 'SupplementaryFigure_2b.pdf', width = 5, height = 5)
   mtext(text = paste0('p = ', signif(c$p.value, digits = 2)), side = 3, line = -2, cex = 0.9)
   title(xlab = 'Number of cloned segregating variants', line = 2.5)
   title(ylab = 'Stdev in modal expression', line = 3)
-  legend('topleft', legend = parse(text = sprintf('italic(%s)', prom.pss)), col = cols.leg,
+  legend('topleft', legend = parse(text = sprintf('italic(%s)', prom.th)), col = cols.leg,
           pch = 16, title = 'Promoter')
 
 dev.off()
@@ -399,7 +447,7 @@ pdf(file = 'Figure_4a.1.pdf', width = 15, height = 7)
       las = 1)
 
   ### loop through first 5 promoters
-  for (pr in names(prom.pss)[1:5]) {
+  for (pr in names(prom.th)[1:5]) {
     ### extract info about all three environments
     args <- offnames[which(grepl(pr, offnames))]
     for (i in 1:3) {
@@ -432,7 +480,7 @@ pdf(file = 'Figure_4a.1.pdf', width = 15, height = 7)
         par(mar = c(0, 4, 3, 1))
         plot(3, 3, type = 'n', xlim = c(1, snp_map[len, 2]),
               ylim = c(2, 5), xaxt = 'n',
-              main = parse(text = sprintf('italic(%s)', prom.pss[pr])),
+              main = parse(text = sprintf('italic(%s)', prom.th[pr])),
               cex.main = 1.5, xlab = '', ylab = '')
       } else if (a == args[2]) {
         par(mar = c(1.5, 4, 1.5, 1))
@@ -466,7 +514,7 @@ pdf(file = 'Figure_4a.1.pdf', width = 15, height = 7)
         axis(side = 1, at = seq(start - floor(start / 50) * 50, floor(end / 50) * 50 + 10 * floor((end - start) / 50) + 1, 50),
               labels = rep('', length(positions)), cex.axis = 1)
       }
-      if (pr == names(prom.pss)[1]) {
+      if (pr == names(prom.th)[1]) {
         title(ylab = 'Modal expression (log10, a.u.)', line = 2.5, cex.lab = 1.2)
       }
     }
@@ -559,7 +607,7 @@ pdf(file = 'Figure_4a.2.pdf', width = 15, height = 7)
       las = 1)
 
   ### loop through first 5 promoters
-  for (pr in names(prom.pss)[6:10]) {
+  for (pr in names(prom.th)[6:10]) {
     ### extract info about all three environments
     args <- offnames[which(grepl(pr, offnames))]
     for (i in 1:3) {
@@ -592,7 +640,7 @@ pdf(file = 'Figure_4a.2.pdf', width = 15, height = 7)
         par(mar = c(0, 4, 3, 1))
         plot(3, 3, type = 'n', xlim = c(1, snp_map[len, 2]),
               ylim = c(2, 5), xaxt = 'n',
-              main = parse(text = sprintf('italic(%s)', prom.pss[pr])),
+              main = parse(text = sprintf('italic(%s)', prom.th[pr])),
               cex.main = 1.5, xlab = '', ylab = '')
       } else if (a == args[2]) {
         par(mar = c(1.5, 4, 1.5, 1))
@@ -626,7 +674,7 @@ pdf(file = 'Figure_4a.2.pdf', width = 15, height = 7)
         axis(side = 1, at = seq(start - floor(start / 50) * 50, floor(end / 50) * 50 + 10 * floor((end - start) / 50) + 1, 50),
               labels = rep('', length(positions)), cex.axis = 1)
       }
-      if (pr == names(prom.pss)[6]) {
+      if (pr == names(prom.th)[6]) {
         title(ylab = 'Modal expression (log10, a.u.)', line = 2.5, cex.lab = 1.2)
       }
     }
@@ -725,7 +773,7 @@ dev.off()
 ### or outside (annFalse) TF or RNAP binding site
 annTrue <- c()
 annFalse <- c()
-for (pr in names(prom.pss)) {
+for (pr in names(prom.th)) {
   ### obtain data about SNP positions for each random variant
   snp_map <- read.csv(paste0(prom.path[pr], '1SNPmap.csv'), header = T)
   ### obtain info about promoter annotations (TF and so on)
@@ -801,12 +849,12 @@ pdf(file = 'Figure_5.pdf', width = 9, height = 7)
       las = 1)
 
   ### loop through all promoters
-  for (pr in names(prom.pss)) {
-    if (pr == names(prom.pss)[1] || pr == names(prom.pss)[5] || pr == names(prom.pss)[9]) {
+  for (pr in names(prom.th)) {
+    if (pr == names(prom.th)[1] || pr == names(prom.th)[5] || pr == names(prom.th)[9]) {
       par(mar = c(3, 4, 2, 0))
-    } else if (pr == names(prom.pss)[2] || pr == names(prom.pss)[6] || pr == names(prom.pss)[10]) {
+    } else if (pr == names(prom.th)[2] || pr == names(prom.th)[6] || pr == names(prom.th)[10]) {
       par(mar = c(3, 3, 2, 1))
-    } else if (pr == names(prom.pss)[3] || pr == names(prom.pss)[7]) {
+    } else if (pr == names(prom.th)[3] || pr == names(prom.th)[7]) {
       par(mar = c(3, 2, 2, 2))
     } else {
       par(mar = c(3, 1, 2, 3))
@@ -845,7 +893,7 @@ pdf(file = 'Figure_5.pdf', width = 9, height = 7)
       ### plotting
       if (a == args[1]) {
         plot(jitter(rep(n + 0.2, length(mall)), factor = c(3:1)[n]), mall,
-              main = parse(text = sprintf('italic(%s)', prom.pss[pr])), col = alpha('red', 0.2),
+              main = parse(text = sprintf('italic(%s)', prom.th[pr])), col = alpha('red', 0.2),
               xlim = c(0.5, 3.5), ylim = c(2, 5), pch = 16,
               xlab = '', ylab = '', xaxt = 'n')
       } else {
@@ -868,7 +916,7 @@ pdf(file = 'Figure_5.pdf', width = 9, height = 7)
       }
     }
     axis(side = 1, at = c(1:3), labels = conds)
-    if (pr == names(prom.pss)[1] || pr == names(prom.pss)[5] || pr == names(prom.pss)[9]) {
+    if (pr == names(prom.th)[1] || pr == names(prom.th)[5] || pr == names(prom.th)[9]) {
       title(ylab = 'Modal expression (log10, a.u.)', line = 2.5)
     }
   }
@@ -923,7 +971,7 @@ pdf(file = "Figure_6a.pdf", width = 5, height = 5)
   points(seg2[nseg], seg3[nseg],
         pch = 16, col = alpha('green', 0.75))
   abline(0, 1, lty = 3, col = 'blue')
-  mtext(parse(text = sprintf('italic(%s)', prom.pss[pr])), side = 3, line = 0.5)
+  mtext(parse(text = sprintf('italic(%s)', prom.th[pr])), side = 3, line = 0.5)
   title(xlab = paste(conds[2]), line = 2)
   title(ylab = paste(conds[3]), line = 2.5)
 
@@ -935,7 +983,7 @@ cat(paste('Producing Figure 6b\n'))
 pdf(file = "Figure_6b.pdf", width = 5, height = 5)
   par(las = 1)
 
-  source('~/Documents/addgrids3d.r')
+  source(paste0(root.path, '/addgrids3d.r'))
   sp <- scatterplot3d(mut1, mut2, mut3,
         pch = '', grid = F, box = F,
         xlab = conds[1], xlim = lims,
@@ -950,7 +998,7 @@ pdf(file = "Figure_6b.pdf", width = 5, height = 5)
   sp$points3d(seg1[nseg], seg2[nseg], seg3[nseg],
         col = alpha("green", 0.75), pch = 16)
   sp$points3d(x = lims, y = lims, z = lims, type = 'l', lty = 3, col = 'blue')
-  mtext(parse(text = sprintf('italic(%s)', prom.pss[pr])), side = 3, line = 0.5)
+  mtext(parse(text = sprintf('italic(%s)', prom.th[pr])), side = 3, line = 0.5)
 
 dev.off()
 
@@ -966,8 +1014,8 @@ pdf(file = "Figure_6c.pdf", width = 9, height = 5)
   x2 <- rep(5, 3)
 
   ### loop through all promoters
-  for (n in 1:length(names(prom.pss))) {
-    pr <- names(prom.pss)[n]
+  for (n in 1:length(names(prom.th))) {
+    pr <- names(prom.th)[n]
     ### extract info about all three environments
     args <- offnames[which(grepl(pr, offnames))]
     a <- args[1]
@@ -1013,7 +1061,7 @@ pdf(file = "Figure_6c.pdf", width = 9, height = 5)
     ### test for differences in median plasticity between seg. and random variants
     test <- wilcox.test(x = mut, y = seg, exact = F)
     ### plotting
-    if (pr == names(prom.pss)[1]) {
+    if (pr == names(prom.th)[1]) {
       plot(jitter(rep(n - 0.2, nseg - 1), factor = 4 / n), seg[1:nseg - 1],
               xaxt = 'n', ylim = c(0, 2), xlim = c(0.5, 10.5),
               col = alpha('black', 0.2), pch = 16, xlab = '', ylab = '')
@@ -1038,7 +1086,7 @@ pdf(file = "Figure_6c.pdf", width = 9, height = 5)
       text(x = n, y = 1.95, labels = signif(test$p.value, digits = 2))
     }
   }
-  axis(side = 1, at = c(1:10), labels = parse(text = sprintf('italic(%s)', prom.pss)))
+  axis(side = 1, at = c(1:10), labels = parse(text = sprintf('italic(%s)', prom.th)))
   title(ylab = 'Plasticity', line = 2.5)
   legend('right', legend = c('Mutagenesis', 'Segregating', 'MG1655'),
           pch = 16, col = c(alpha('red', 0.2), alpha('black', 0.2), alpha('green', 0.75)),
@@ -1083,7 +1131,7 @@ pdf(file = "Figure_6d.pdf", width = 5, height = 5)
   points(seg2[nseg], seg3[nseg],
         pch = 16, col = alpha('green', 0.75))
   abline(0, 1, lty = 3, col = 'blue')
-  mtext(parse(text = sprintf('italic(%s)', prom.pss[pr])), side = 3, line = 0.5)
+  mtext(parse(text = sprintf('italic(%s)', prom.th[pr])), side = 3, line = 0.5)
   title(xlab = conds[2], line = 2)
   title(ylab = conds[3], line = 2.5)
 
@@ -1181,7 +1229,7 @@ pdf(file = "Figure_6e.pdf", width = 5, height = 5)
               paste0(conds[2], ':', conds[3]),
               paste0(conds[3], ':', conds[1]))
   axis(side = 1, at = c(1:3), labels = comps)
-  mtext(parse(text = sprintf('italic(%s)', prom.pss[pr])), side = 3, line = 0.5)
+  mtext(parse(text = sprintf('italic(%s)', prom.th[pr])), side = 3, line = 0.5)
   title(ylab = 'Plasticity (in 2D)', line = 2.5)
 
 dev.off()
@@ -1194,7 +1242,7 @@ pdf(file = "SupplementaryFigure_3.pdf", width = 12, height = 12)
       las = 1,
       par(mar = c(4, 3.5, 2, 0.5)))
 
-  for (pr in names(prom.pss)) {
+  for (pr in names(prom.th)) {
     args <- offnames[which(grepl(pr, offnames))]
     for (n in 1:3) {
       a <- args[n]
@@ -1228,7 +1276,7 @@ pdf(file = "SupplementaryFigure_3.pdf", width = 12, height = 12)
         }
       }
       abline(0, 1, lty = 3, col = 'blue')
-      mtext(parse(text = sprintf('italic(%s)', prom.pss[pr])), side = 3, line = 0.5)
+      mtext(parse(text = sprintf('italic(%s)', prom.th[pr])), side = 3, line = 0.5)
       title(xlab = conds[n], line = 2)
       title(ylab = conds[m], line = 2.5)
     }
@@ -1257,12 +1305,12 @@ pdf(file = 'SupplementaryFigure_4.pdf', width = 9, height = 7)
       las = 1)
 
   ### loop through all promoters
-  for (pr in names(prom.pss)) {
-    if (pr == names(prom.pss)[1] || pr == names(prom.pss)[5] || pr == names(prom.pss)[9]) {
+  for (pr in names(prom.th)) {
+    if (pr == names(prom.th)[1] || pr == names(prom.th)[5] || pr == names(prom.th)[9]) {
       par(mar = c(3.5, 5, 1.5, 0))
-    } else if (pr == names(prom.pss)[2] || pr == names(prom.pss)[6] || pr == names(prom.pss)[10]) {
+    } else if (pr == names(prom.th)[2] || pr == names(prom.th)[6] || pr == names(prom.th)[10]) {
       par(mar = c(3.5, 4, 1.5, 1))
-    } else if (pr == names(prom.pss)[3] || pr == names(prom.pss)[7]) {
+    } else if (pr == names(prom.th)[3] || pr == names(prom.th)[7]) {
       par(mar = c(3.5, 3, 1.5, 2))
     } else {
       par(mar = c(3.5, 2, 1.5, 3))
@@ -1327,7 +1375,7 @@ pdf(file = 'SupplementaryFigure_4.pdf', width = 9, height = 7)
         plot(mut[, 1], mut[, 2], pch = 16,
               col = alpha(cols[a], 0.3), xlim = c(2, 5), ylim = c(0.02, 0.5),
               xlab = '', ylab = '', log = 'y',
-              main = parse(text = sprintf('italic(%s)', prom.pss[pr])))
+              main = parse(text = sprintf('italic(%s)', prom.th[pr])))
       } else {
         points(mut[, 1], mut[, 2], pch = 16, col = alpha(cols[a], 0.3))
       }
@@ -1350,10 +1398,10 @@ pdf(file = 'SupplementaryFigure_4.pdf', width = 9, height = 7)
         conds <- c(conds, cond.ls[[which(endsWith(names(cond.ls), args[i]))]])
       }
     }
-    if (pr == names(prom.pss)[7] || pr == names(prom.pss)[8] || pr == names(prom.pss)[9] || pr == names(prom.pss)[10]) {
+    if (pr == names(prom.th)[7] || pr == names(prom.th)[8] || pr == names(prom.th)[9] || pr == names(prom.th)[10]) {
       title(xlab = 'Modal expression (log10, a.u.)', line = 2)
     }
-    if (pr == names(prom.pss)[1] || pr == names(prom.pss)[5] || pr == names(prom.pss)[9]) {
+    if (pr == names(prom.th)[1] || pr == names(prom.th)[5] || pr == names(prom.th)[9]) {
       title(ylab = 'mCV (stdev/mode)', line = 3)
     }
     legend('topright', legend = conds, pch = 16,
@@ -1375,12 +1423,12 @@ pdf(file = "Figure_7a.pdf", width = 9, height = 7)
       las = 1)
 
   ### loop through all promoters
-  for (pr in names(prom.pss)) {
-    if (pr == names(prom.pss)[1] || pr == names(prom.pss)[5] || pr == names(prom.pss)[9]) {
+  for (pr in names(prom.th)) {
+    if (pr == names(prom.th)[1] || pr == names(prom.th)[5] || pr == names(prom.th)[9]) {
       par(mar = c(3, 5, 2, 0))
-    } else if (pr == names(prom.pss)[2] || pr == names(prom.pss)[6] || pr == names(prom.pss)[10]) {
+    } else if (pr == names(prom.th)[2] || pr == names(prom.th)[6] || pr == names(prom.th)[10]) {
       par(mar = c(3, 4, 2, 1))
-    } else if (pr == names(prom.pss)[3] || pr == names(prom.pss)[7]) {
+    } else if (pr == names(prom.th)[3] || pr == names(prom.th)[7]) {
       par(mar = c(3, 3, 2, 2))
     } else {
       par(mar = c(3, 2, 2, 3))
@@ -1417,7 +1465,7 @@ pdf(file = "Figure_7a.pdf", width = 9, height = 7)
       ### plotting
       if (a == args[1]) {
         plot(jitter(rep(n - 0.2, nseg - 1), factor = c(3:1)[n]), seg[1:nseg - 1],
-                main = parse(text = sprintf('italic(%s)', prom.pss[pr])),
+                main = parse(text = sprintf('italic(%s)', prom.th[pr])),
                 xaxt = "n", xlim = c(0.5, 3.5), ylim = c(-0.025, 0.025),#ylim = c(-0.03, 0.06),#
                 col = alpha('black', 0.2), pch = 16, xlab = '', ylab = '')
       } else {
@@ -1442,7 +1490,7 @@ pdf(file = "Figure_7a.pdf", width = 9, height = 7)
       }
     }
     axis(side = 1, at = c(1:3), labels = conds)
-    if (pr == names(prom.pss)[1] || pr == names(prom.pss)[5] || pr == names(prom.pss)[9]) {
+    if (pr == names(prom.th)[1] || pr == names(prom.th)[5] || pr == names(prom.th)[9]) {
       title(ylab = 'Noise', line = 3.5)
     }
   }
@@ -1480,7 +1528,7 @@ pdf(file = "Figure_7b.pdf", width = 5, height = 5)
     test <- wilcox.test(x = mut, y = seg, exact = F)
     if (a == args[1]) {
       plot(jitter(rep(n - 0.2, nseg - 1), factor = c(3:1)[n]), seg[1:nseg - 1],
-              main = parse(text = sprintf('italic(%s)', prom.pss[pr])),
+              main = parse(text = sprintf('italic(%s)', prom.th[pr])),
               xaxt = "n", xlim = c(0.5, 3.5), ylim = c(-0.075, 0.3),
               col = alpha('black', 0.2), pch = 16, xlab = '', ylab = '')
     } else {
@@ -1531,7 +1579,7 @@ pdf(file = "Figure_7c.pdf", width = 5, height = 5)
     test <- wilcox.test(x = mut, y = seg, exact = F)
     if (a == args[1]) {
       plot(jitter(rep(n - 0.2, nseg - 1), factor = c(3:1)[n]), seg[1:nseg - 1],
-              main = parse(text = sprintf('italic(%s)', prom.pss[pr])),
+              main = parse(text = sprintf('italic(%s)', prom.th[pr])),
               xaxt = "n", xlim = c(0.5, 3.5), ylim = c(-0.025, 0.09),
               col = alpha('black', 0.2), pch = 16, xlab = '', ylab = '')
     } else {
@@ -1573,8 +1621,8 @@ par(fig = c(0, 1, 0, 1),
     las = 1)
 
     ### loop through all promoters
-    for (n in 1:length(names(prom.pss))) {
-      pr <- names(prom.pss)[n]
+    for (n in 1:length(names(prom.th))) {
+      pr <- names(prom.th)[n]
       ### extract info about all three environments
       args <- offnames[which(grepl(pr, offnames))]
       a <- args[1]
@@ -1732,7 +1780,7 @@ par(fig = c(0, 1, 0, 1),
         text(x = n, y = 150, labels = signif(test$p.value, digits = 2))
       }
     }
-    axis(side = 1, at = c(1:10), labels = parse(text = sprintf('italic(%s)', prom.pss)))
+    axis(side = 1, at = c(1:10), labels = parse(text = sprintf('italic(%s)', prom.th)))
     title(ylab = 'Cumulative z-score', line = 2.5)
     legend(0.1, 70, legend = c('Mutagenesis', 'Segregating', 'MG1655'),
             pch = 16, col = c(alpha('red', 0.2), alpha('black', 0.2), alpha('green', 0.75)),
@@ -1741,8 +1789,8 @@ par(fig = c(0, 1, 0, 1),
 ### plotting inset
 par(fig = c(0.05, 0.35, 0.37, 0.94),
     new = TRUE)
-  for (i in 1:length(names(prom.pss))) {
-    pr <- names(prom.pss)[i]
+  for (i in 1:length(names(prom.th))) {
+    pr <- names(prom.th)[i]
     if (grepl('AceB', pr) || grepl('PurA', pr)) {
       args <- offnames[which(grepl(pr, offnames))]
       a <- args[1]

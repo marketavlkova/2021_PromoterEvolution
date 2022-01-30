@@ -15,11 +15,11 @@ data <- data[, -1]
 ### create list to customize promoter names for legend
 prom.th <- list('aldAp' = 'aldA',
                 'yhjXp' = 'yhjX',
-                'lacZp1' = 'lacZ',
-                'aceBp' = 'aceB',
                 'mtrp2' = 'mtr',
-                'cddp' = 'cdd',
+                'aceBp' = 'aceB',
+                'lacZp1' = 'lacZ',
                 'dctAp' = 'dctA',
+                'cddp' = 'cdd',
                 'ptsGp2' = 'ptsG',
                 'purAp' = 'purA',
                 'tpiAp2' = 'tpiA')

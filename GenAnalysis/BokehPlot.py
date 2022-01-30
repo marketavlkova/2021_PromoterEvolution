@@ -8,6 +8,9 @@ import os.path
 import requests
 import pandas as pd
 import statistics
+import matplotlib.style
+import matplotlib as mpl
+mpl.style.use('classic')
 from io import StringIO
 from bokeh.plotting import figure, output_file, show
 from bokeh.layouts import gridplot, layout, column
@@ -31,7 +34,7 @@ def main():
     output_file("output/BokehPlot.html")
     ### load data files to check for mismatches in gene names after using EcoCyc
     ecocyc_in = pd.read_csv('output/GeneNames.csv', delimiter = ',')
-    ### load data table with PSS and API values
+    ### load data table with Theta and Pi values
     plot_data = pd.read_csv('output/DataIGRs&GenesCommon.csv', delimiter = ',')
     ### add gene names to the table with Ide and Seg
     data = pd.concat([plot_data, ecocyc_in], axis = 1)
@@ -53,7 +56,7 @@ def main():
             ### remove possibly existing characters: " from the gene name
             if '"' in g:
                 g = g.split('"')[1]
-            ### loop through all row numbers of the table with PSS & API values together with gene names
+            ### loop through all row numbers of the table with Theta & Pi values together with gene names
             for prom in range(0, len(data['Gene'])):
                 ### when you find the gene name currently processing and it's the first encounter
                 if data['Gene'][prom] == g:
@@ -92,11 +95,11 @@ def main():
                             ### add the BC subgroup value and its description to the 'line' list
                             line.append(bc)
                             line.append(bckey)
-                    ### add its API and PSS values to the 'line' list
-                    line.append(data['PromAPI'][prom])
-                    line.append(data['PromPSS'][prom])
-                    line.append(data['GeneAPI'][prom])
-                    line.append(data['GenePSS'][prom])
+                    ### add its Pi and Theta values to the 'line' list
+                    line.append(data['IgrPi'][prom])
+                    line.append(data['NormIgrTh'][prom])
+                    line.append(data['GenePi'][prom])
+                    line.append(data['NormGeneTh'][prom])
                     ### add which promoter were used for further experiment
                     if any([g == 'aceB', g == 'aldA', g == 'lacZ', g == 'mtr', g == 'yhjX', g == 'cdd', g == 'dctA', g == 'ptsG', g == 'purA', g == 'tpiA']):
                         exp = 'yes'
@@ -108,7 +111,7 @@ def main():
             vec.append(line)
 
     ### create dataframe out the the complete 'vec' list with specified column names
-    final_table = pd.DataFrame(vec, columns = ['ID', 'Gene', 'BC0', 'BC0-fun', 'BC1', 'BC1-fun', 'BC2', 'BC2-fun', 'BC3', 'BC3-fun', 'BC4', 'BC4-fun', 'PromAPI', 'PromPSS', 'GeneAPI', 'GenePSS', 'Experiment'])
+    final_table = pd.DataFrame(vec, columns = ['ID', 'Gene', 'BC0', 'BC0-fun', 'BC1', 'BC1-fun', 'BC2', 'BC2-fun', 'BC3', 'BC3-fun', 'BC4', 'BC4-fun', 'IgrPi', 'NormIgrTh', 'GenePi', 'NormGeneTh', 'Experiment'])
     ### save this dataframe as csv table
     final_table.to_csv('output/MultiFunPlotData.csv')
     final_table = pd.read_csv('output/MultiFunPlotData.csv', delimiter = ',')
@@ -121,7 +124,7 @@ def main():
     ### define tools you want to be present in the plots
     tls = "pan, tap, hover, box_zoom, box_select, wheel_zoom, reset, save, crosshair"
     ### define source to enable linked selection of genes between the plots
-    src = ColumnDataSource(data = dict(x0 = final_table['PromAPI'], y0 = final_table['GeneAPI'], x1 = final_table['PromPSS'], y1 = final_table['GenePSS'], z0 = final_table['Gene'], z1 = final_table['BC0'], z2 = final_table['BC0-fun'], z3 = final_table['BC1-fun'], z4 = final_table['BC2-fun'], z5 = final_table['BC3-fun'], z6 = final_table['BC4-fun'], z7 = final_table['Experiment']))
+    src = ColumnDataSource(data = dict(x0 = final_table['IgrPi'], y0 = final_table['GenePi'], x1 = final_table['NormIgrTh'], y1 = final_table['NormGeneTh'], z0 = final_table['Gene'], z1 = final_table['BC0'], z2 = final_table['BC0-fun'], z3 = final_table['BC1-fun'], z4 = final_table['BC2-fun'], z5 = final_table['BC3-fun'], z6 = final_table['BC4-fun'], z7 = final_table['Experiment']))
     ### add information boxes to an inspection tool (hover)
     tltips = [('Gene', '@z0'),('Main group', '@z2'), ('Subgroups', '@z3'), ('', '@z4'), ('', '@z5'), ('', '@z6'), ('Experiment', '@z7')]
 
@@ -164,16 +167,16 @@ def main():
     ########## 1st PLOT DEFINITION ##########
     #########################################
     ### check for maximal values to be used in both x and y axis of the plot
-    mprom = round(max(final_table['PromPSS']), 1)
-    mgene = round(max(final_table['GenePSS']), 1)
+    mprom = round(max(final_table['NormIgrTh']), 2)
+    mgene = round(max(final_table['NormGeneTh']), 2)
     if (mprom > mgene):
-        mplot = mprom + 0.01
+        mplot = mprom + 0.002
     else:
-        mplot = mgene + 0.01
+        mplot = mgene + 0.002
     ### set the figure dimension and other characteristics
-    pl1 = figure(tools = tls, tooltips = tltips, plot_width = 750, plot_height = 750, x_range = (-0.012, mplot), y_range = (-0.012, mplot), x_axis_label = 'Intergenic regions', y_axis_label = 'Open reading frames')
+    pl1 = figure(tools = tls, tooltips = tltips, plot_width = 750, plot_height = 750, x_range = (-0.002, mplot), y_range = (-0.002, mplot), x_axis_label = 'Intergenic regions', y_axis_label = 'Open reading frames')
     ### set plot main title
-    pl1.title.text = 'Proportion of segregating sites'
+    pl1.title.text = 'Normalized Watterson estimator θ'
     ### set the Seg values to be in the plotted
     n = 0
     for v in list(main_plot_key.keys()):
@@ -188,9 +191,9 @@ def main():
     ########## 2nd PLOT DEFINITION ##########
     #########################################
     ### set the figure dimension and other characteristics
-    pl2 = figure(tools = tls, tooltips = tltips, plot_width = 375, plot_height = 375, x_range = (-0.012, mplot), y_range = (-0.012, mplot), x_axis_label = 'Intergenic regions', y_axis_label = 'Open reading frames')
+    pl2 = figure(tools = tls, tooltips = tltips, plot_width = 375, plot_height = 375, x_range = (-0.002, mplot), y_range = (-0.002, mplot), x_axis_label = 'Intergenic regions', y_axis_label = 'Open reading frames')
     ### set plot main title
-    pl2.title.text = 'Proportion of segregating sites'
+    pl2.title.text = 'Normalized Watterson estimator θ'
     ### set the Seg values to be in the plotted
     n = 0
     for v in list(sec_plot_key.keys()):
@@ -205,17 +208,17 @@ def main():
     ########## 3rd PLOT DEFINITION ##########
     #########################################
     ### check for maximal values to be used in both x and y axis of the plot
-    mprom = round(max(final_table['PromAPI']), 1)
-    mgene = round(max(final_table['GeneAPI']), 1)
+    mprom = round(max(final_table['IgrPi']), 2)
+    mgene = round(max(final_table['GenePi']), 2)
     if (mprom > mgene):
-        mplot = mprom + 0.4
+        mplot = mprom + 0.004
     else:
-        mplot = mgene + 0.4
+        mplot = mgene + 0.004
 
     ### set the figure dimension and other characteristics
-    pl3 = figure(tools = tls, tooltips = tltips, plot_width = 750, plot_height = 750, x_range = (-0.4, mplot), y_range = (-0.4, mplot), x_axis_label = 'Intergenic regions', y_axis_label = 'Open reading frames')
+    pl3 = figure(tools = tls, tooltips = tltips, plot_width = 750, plot_height = 750, x_range = (-0.004, mplot), y_range = (-0.004, mplot), x_axis_label = 'Intergenic regions', y_axis_label = 'Open reading frames')
     ### set plot main title
-    pl3.title.text = '100 - average pairwise identity'
+    pl3.title.text = 'Pairwise nucleotide diversity π'
     ### set the Ide values to be in the plotted
     n = 0
     for v in list(main_plot_key.keys()):
@@ -230,9 +233,9 @@ def main():
     ########## 4th PLOT DEFINITION ##########
     #########################################
     ### set the figure dimension and other characteristics
-    pl4 = figure(tools = tls, tooltips = tltips, plot_width = 375, plot_height = 375, x_range = (-0.4, mplot), y_range = (-0.4, mplot), x_axis_label = 'Intergenic regions', y_axis_label = 'Open reading frames')
+    pl4 = figure(tools = tls, tooltips = tltips, plot_width = 375, plot_height = 375, x_range = (-0.004, mplot), y_range = (-0.004, mplot), x_axis_label = 'Intergenic regions', y_axis_label = 'Open reading frames')
     ### set plot main title
-    pl4.title.text = '100 - average pairwise identity'
+    pl4.title.text = 'Pairwise nucleotide diversity π'
     ### set the Ide values to be in the plotted
     n = 0
     for v in list(sec_plot_key.keys()):
@@ -254,7 +257,7 @@ def main():
     i = 0
     for sub in subs:
         ### define source to enable linked selection of genes between the plots
-        src = ColumnDataSource(data = dict(x0 = subs[sub]['PromAPI'], y0 = subs[sub]['GeneAPI'], x1 = subs[sub]['PromPSS'], y1 = subs[sub]['GenePSS'], z0 = subs[sub]['Gene'], z1 = subs[sub]['BC1'], z2 = subs[sub]['BC0-fun'], z3 = subs[sub]['BC1-fun'], z4 = subs[sub]['BC2-fun'], z5 = subs[sub]['BC3-fun'], z6 = subs[sub]['BC4-fun'], z7 = subs[sub]['Experiment']))
+        src = ColumnDataSource(data = dict(x0 = subs[sub]['IgrPi'], y0 = subs[sub]['GenePi'], x1 = subs[sub]['NormIgrTh'], y1 = subs[sub]['NormGeneTh'], z0 = subs[sub]['Gene'], z1 = subs[sub]['BC1'], z2 = subs[sub]['BC0-fun'], z3 = subs[sub]['BC1-fun'], z4 = subs[sub]['BC2-fun'], z5 = subs[sub]['BC3-fun'], z6 = subs[sub]['BC4-fun'], z7 = subs[sub]['Experiment']))
         ### extract BC groups' IDs from 'BC0' column
         bins = []
         for zero in subs[sub]['BC1']:
@@ -285,16 +288,16 @@ def main():
             ########## 1st PLOT DEFINITION ##########
             #########################################
             ### check for maximal values to be used in both x and y axis of the plot
-            mprom = round(max(final_table['PromAPI']), 1)
-            mgene = round(max(final_table['GeneAPI']), 1)
+            mprom = round(max(final_table['IgrPi']), 2)
+            mgene = round(max(final_table['GenePi']), 2)
             if (mprom > mgene):
-                mplot = mprom + 0.4
+                mplot = mprom + 0.004
             else:
-                mplot = mgene + 0.4
+                mplot = mgene + 0.004
             ### set the figure dimension and other characteristics
-            pl3 = figure(tools = tls, tooltips = tltips, plot_width = 750, plot_height = 750, x_range = (-0.4, mplot), y_range = (-0.4, mplot), x_axis_label = 'Intergenic regions', y_axis_label = 'Open reading frames')
+            pl3 = figure(tools = tls, tooltips = tltips, plot_width = 750, plot_height = 750, x_range = (-0.004, mplot), y_range = (-0.004, mplot), x_axis_label = 'Intergenic regions', y_axis_label = 'Open reading frames')
             ### set plot main title
-            pl3.title.text = '100 - average pairwise identity'
+            pl3.title.text = 'Pairwise nucleotide diversity π'
             ### set the Ide values to be in the plotted
             n = 0
             for v in list(plot_key.keys()):
@@ -311,16 +314,16 @@ def main():
             ########## 2nd PLOT DEFINITION ##########
             #########################################
             ### check for maximal values to be used in both x and y axis of the plot
-            mprom = round(max(final_table['PromPSS']), 1)
-            mgene = round(max(final_table['GenePSS']), 1)
+            mprom = round(max(final_table['NormIgrTh']), 2)
+            mgene = round(max(final_table['NormGeneTh']), 2)
             if (mprom > mgene):
-                mplot = mprom + 0.01
+                mplot = mprom + 0.002
             else:
-                mplot = mgene + 0.01
+                mplot = mgene + 0.002
             ### set the figure dimension and other characteristics
-            pl4 = figure(tools = tls, tooltips = tltips, plot_width = 750, plot_height = 750, x_range = (-0.012, mplot), y_range = (-0.012, mplot), x_axis_label = 'Intergenic regions', y_axis_label = 'Open reading frames')
+            pl4 = figure(tools = tls, tooltips = tltips, plot_width = 750, plot_height = 750, x_range = (-0.002, mplot), y_range = (-0.002, mplot), x_axis_label = 'Intergenic regions', y_axis_label = 'Open reading frames')
             ### set plot main title
-            pl4.title.text = 'Proportion of segregating sites'
+            pl4.title.text = 'Normalized Watterson estimator θ'
             ### set the Seg values to be in the plotted
             n = 0
             for v in list(plot_key.keys()):
@@ -344,7 +347,7 @@ def main():
 
     box_data = final_table
     box_data.index = list(box_data.BC0)
-    box1 = figure(plot_width = 600, plot_height = 600, y_range = list(main_plot_key.keys()), x_range = (-0.012, 0.31), x_axis_label = 'Proportion of segregating sites', y_axis_label = 'Main function groups')
+    box1 = figure(plot_width = 600, plot_height = 600, y_range = list(main_plot_key.keys()), x_range = (-0.002, 0.07), x_axis_label = 'Normalized Watterson estimator θ', y_axis_label = 'Main function groups')
     box1.title.text = 'Intergenic regions'
     box1.xaxis.major_label_orientation = 'vertical'
 
@@ -354,13 +357,13 @@ def main():
     upper = []
     lower = []
     for grp in list(main_plot_key.keys()):
-        middle = statistics.median(box_data.PromPSS.loc[main_plot_key[grp]])
-        sd = statistics.stdev(box_data.PromPSS.loc[main_plot_key[grp]])
+        middle = statistics.median(box_data.NormIgrTh.loc[main_plot_key[grp]])
+        sd = statistics.stdev(box_data.NormIgrTh.loc[main_plot_key[grp]])
         mid.append(middle)
         top.append((middle + sd))
         bottom.append((middle - sd))
-        upper.append(max(box_data.PromPSS.loc[main_plot_key[grp]]))
-        lower.append(min(box_data.PromPSS.loc[main_plot_key[grp]]))
+        upper.append(max(box_data.NormIgrTh.loc[main_plot_key[grp]]))
+        lower.append(min(box_data.NormIgrTh.loc[main_plot_key[grp]]))
 
     box1.hbar(y = list(main_plot_key.keys()), height = 0.5, left = bottom, right = top, color = Category10_10)
     box1.hbar(y = list(main_plot_key.keys()), height = 0.01, left = lower, right = upper, color = 'black')
@@ -368,7 +371,7 @@ def main():
     box1.hbar(y = list(main_plot_key.keys()), height = 0.5, left = lower, right = lower, color = 'black')
     box1.hbar(y = list(main_plot_key.keys()), height = 0.5, left = upper, right = upper, color = 'black')
 
-    box2 = figure(plot_width = 600, plot_height = 600, y_range = list(main_plot_key.keys()), x_range = (-0.012, 0.31), x_axis_label = 'Proportion of segregating sites', y_axis_label = 'Main function groups')
+    box2 = figure(plot_width = 600, plot_height = 600, y_range = list(main_plot_key.keys()), x_range = (-0.002, 0.07), x_axis_label = 'Normalized Watterson estimator θ', y_axis_label = 'Main function groups')
     box2.title.text = 'Open reading frames'
     box2.xaxis.major_label_orientation = 'vertical'
 
@@ -378,13 +381,13 @@ def main():
     upper = []
     lower = []
     for grp in list(main_plot_key.keys()):
-        middle = statistics.median(box_data.GenePSS.loc[main_plot_key[grp]])
-        sd = statistics.stdev(box_data.GenePSS.loc[main_plot_key[grp]])
+        middle = statistics.median(box_data.NormGeneTh.loc[main_plot_key[grp]])
+        sd = statistics.stdev(box_data.NormGeneTh.loc[main_plot_key[grp]])
         mid.append(middle)
         top.append((middle + sd))
         bottom.append((middle - sd))
-        upper.append(max(box_data.GenePSS.loc[main_plot_key[grp]]))
-        lower.append(min(box_data.GenePSS.loc[main_plot_key[grp]]))
+        upper.append(max(box_data.NormGeneTh.loc[main_plot_key[grp]]))
+        lower.append(min(box_data.NormGeneTh.loc[main_plot_key[grp]]))
 
     box2.hbar(y = list(main_plot_key.keys()), height = 0.5, left = bottom, right = top, color = Category10_10)
     box2.hbar(y = list(main_plot_key.keys()), height = 0.01, left = lower, right = upper, color = 'black')
@@ -421,15 +424,15 @@ def main():
             lower = []
             rem = []
             for grp in list(plot_key.keys()):
-                a = pd.Series(box_data.PromPSS.loc[plot_key[grp]])
+                a = pd.Series(box_data.NormIgrTh.loc[plot_key[grp]])
                 if len(a) > 1:
-                    middle = statistics.median(box_data.PromPSS.loc[plot_key[grp]])
-                    sd = statistics.stdev(box_data.PromPSS.loc[plot_key[grp]])
+                    middle = statistics.median(box_data.NormIgrTh.loc[plot_key[grp]])
+                    sd = statistics.stdev(box_data.NormIgrTh.loc[plot_key[grp]])
                     mid.append(middle)
                     top.append((middle + sd))
                     bottom.append((middle - sd))
-                    upper.append(max(box_data.PromPSS.loc[plot_key[grp]]))
-                    lower.append(min(box_data.PromPSS.loc[plot_key[grp]]))
+                    upper.append(max(box_data.NormIgrTh.loc[plot_key[grp]]))
+                    lower.append(min(box_data.NormIgrTh.loc[plot_key[grp]]))
                 else:
                     rem.append(grp)
 
@@ -440,7 +443,7 @@ def main():
                         if all([grp == k, all_keys[grp] not in rem]):
                             plot_key[all_keys[k]] = grp
 
-            box1 = figure(plot_width = 600, plot_height = 600, y_range = list(plot_key.values()), x_range = (-0.012, 0.31), x_axis_label = 'Proportion of segregating sites', y_axis_label = 'Subgroups 1: ' + list(main_plot_key.keys())[i])
+            box1 = figure(plot_width = 600, plot_height = 600, y_range = list(plot_key.values()), x_range = (-0.002, 0.07), x_axis_label = 'Normalized Watterson estimator θ', y_axis_label = 'Subgroups 1: ' + list(main_plot_key.keys())[i])
             box1.title.text = 'Intergenic regions'
             box1.xaxis.major_label_orientation = 'vertical'
 
@@ -456,19 +459,19 @@ def main():
             upper = []
             lower = []
             for grp in list(plot_key.keys()):
-                a = pd.Series(box_data.GenePSS.loc[plot_key[grp]])
+                a = pd.Series(box_data.NormGeneTh.loc[plot_key[grp]])
                 if len(a) > 1:
-                    middle = statistics.median(box_data.GenePSS.loc[plot_key[grp]])
-                    sd = statistics.stdev(box_data.GenePSS.loc[plot_key[grp]])
+                    middle = statistics.median(box_data.NormGeneTh.loc[plot_key[grp]])
+                    sd = statistics.stdev(box_data.NormGeneTh.loc[plot_key[grp]])
                     mid.append(middle)
                     top.append((middle + sd))
                     bottom.append((middle - sd))
-                    upper.append(max(box_data.GenePSS.loc[plot_key[grp]]))
-                    lower.append(min(box_data.GenePSS.loc[plot_key[grp]]))
+                    upper.append(max(box_data.NormGeneTh.loc[plot_key[grp]]))
+                    lower.append(min(box_data.NormGeneTh.loc[plot_key[grp]]))
                 else:
                     rem.append(grp)
 
-            box2 = figure(plot_width = 600, plot_height = 600, y_range = list(plot_key.values()), x_range = (-0.012, 0.31), x_axis_label = 'Proportion of segregating sites', y_axis_label = 'Subgroups 1: ' + list(main_plot_key.keys())[i])
+            box2 = figure(plot_width = 600, plot_height = 600, y_range = list(plot_key.values()), x_range = (-0.002, 0.07), x_axis_label = 'Normalized Watterson estimator θ', y_axis_label = 'Subgroups 1: ' + list(main_plot_key.keys())[i])
             box2.title.text = 'Open reading frames'
             box2.xaxis.major_label_orientation = 'vertical'
 

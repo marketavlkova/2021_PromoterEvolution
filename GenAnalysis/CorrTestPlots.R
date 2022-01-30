@@ -33,7 +33,8 @@ par(las = 1, mar = c(5.1, 4.1, 2.1, 2.1))
   plot(data[, 'NormIgrTh'][which(data[, 1] >= 130)],
         data[, 'NormPromTh'][which(data[, 1] >= 130)],
         xlim = c(0, 0.08), ylim = c(0, 0.08),
-        xlab = '', ylab = '', col = alpha('black', 0.25), pch = 16)
+        xlab = '', ylab = '', col = alpha('black', 0.25),
+        bg = alpha('cyan', 0.25), pch = 21, cex = 0.9)
   for (pr in names(prom.th)) {
     points(data[pr, 'NormIgrTh'], data[pr, 'NormPromTh'], col = cols[pr], pch = 16)
   }
@@ -54,7 +55,8 @@ par(las = 1, mar = c(5.1, 4.1, 2.1, 2.1))
   plot(data[, 'IgrPi'][which(data[, 1] >= 130)],
         data[, 'PromPi'][which(data[, 1] >= 130)],
         xlim = c(0, 0.12), ylim = c(0, 0.12),
-        xlab = '', ylab = '', col = alpha('black', 0.25), pch = 16)
+        xlab = '', ylab = '', col = alpha('black', 0.25),
+        bg = alpha('cyan', 0.25), pch = 21, cex = 0.9)
   for (pr in names(prom.th)) {
     points(data[pr, 'IgrPi'], data[pr, 'PromPi'], col = cols[pr], pch = 16)
   }

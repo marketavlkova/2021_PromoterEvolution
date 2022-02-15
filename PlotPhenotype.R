@@ -1605,7 +1605,7 @@ dev.off()
 
 ##################################################
 ################### Z-SCORES #####################
-################### FIGURE 8 #####################
+################# SUPP FIGURE 5 ##################
 ##################################################
 
 ### define points in 3D on an isospline to use when
@@ -1613,10 +1613,10 @@ dev.off()
 x1 <- rep(2, 3)
 x2 <- rep(5, 3)
 
-### produce Figure 8 (comparing summed z-scores
-### between seg. and random variants)
-cat(paste('Producing Figure 8\n'))
-pdf(file = 'Figure_8.pdf', width = 9, height = 5)
+### produce Supplementary Figure 5 (comparing summed
+### z-scores between seg. and random variants)
+cat(paste('Producing Supplementary Figure 5\n'))
+pdf(file = 'SupplementaryFigure_5.pdf', width = 9, height = 5)
 par(fig = c(0, 1, 0, 1),
     las = 1)
 
@@ -1903,12 +1903,12 @@ dev.off()
 
 ##################################################
 ################## CELL GATING ###################
-################# SUPP FIGURE 5 ##################
+################# SUPP FIGURE 6 ##################
 ##################################################
 
-### produce Supplementary Figure 5 (gating example)
-cat(paste('Producing Supplementary Figure 5\n'))
-pdf(file = "SupplementaryFigure_5.pdf", width = 12, height = 3)
+### produce Supplementary Figure 6 (gating example)
+cat(paste('Producing Supplementary Figure 6\n'))
+pdf(file = "SupplementaryFigure_6.pdf", width = 12, height = 3)
   par(las = 1, xpd = NA,
       mar = c(4, 4, 2, 1),
       mfrow = c(1, 4))

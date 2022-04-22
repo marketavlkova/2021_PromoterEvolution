@@ -335,7 +335,9 @@ dev.off()
 ### create matrix combining all the values
 ### obtained above for each promoter and condition
 mm <- matrix(, ncol = 6, nrow = 30)
+mm2 <- matrix(, ncol = 6, nrow = 10)
 i <- 1
+i2 <- 1
 for (pr in names(prom.th)) {
   row <- c(varC[pr], varT[pr], Th[pr], Pi[pr])
   args <- offnames[which(grepl(pr, offnames))]
@@ -343,13 +345,18 @@ for (pr in names(prom.th)) {
   mm[i+1,] <- c(row, ranges[[args[2]]][1], ranges[[args[2]]][2])
   mm[i+2,] <- c(row, ranges[[args[3]]][1], ranges[[args[3]]][2])
   i <- i + 3
+  args <- paste0(pr, '_glucose_')
+  mm2[i2, ] <- c(row, ranges[[args]][1], ranges[[args]][2])
+  i2 <- i2 + 1
 }
 colnames(mm) <- c('VariantsC', 'VariantsT', 'Th', 'Pi', 'SD', 'Mean')
+colnames(mm2) <- colnames(mm)
 rownames(mm) <- c(rep(proms[1], 3), rep(proms[2], 3),
         rep(proms[3], 3), rep(proms[4], 3),
         rep(proms[5], 3), rep(proms[6], 3),
         rep(proms[7], 3), rep(proms[8], 3),
         rep(proms[9], 3), rep(proms[10], 3))
+rownames(mm2) <- names(prom.th)
 
 ### define colors for plotting and legend
 cols <- c(rep('red', 3), rep('blue', 3), rep('green', 3),
@@ -367,7 +374,10 @@ pdf(file = 'Figure_3a.pdf', width = 5, height = 5)
 
   plot(x = mm[, 3], y = mm[, 5], xlim = c(0, 0.05), ylim = c(0, 0.3),
         xlab = '', ylab = '', col = cols, pch = 16)
+  points(x = mm2[, 3], y = mm2[, 5], pch = 21, col = 1)
   c <- cor.test(mm[, 3], mm[, 5], method = 'spearman', exact = F)
+  c2 <- cor.test(mm2[, 3], mm2[, 5], method = 'spearman', exact = F)
+  print(paste('glucose: rho =', round(c2$estimate, digits = 3), 'p =', signif(c2$p.value, digits = 2)))
   mtext(text = paste0('rho = ', round(c$estimate, digits = 3)), side = 3, line = -1, cex = 0.9)
   mtext(text = paste0('p = ', signif(c$p.value, digits = 2)), side = 3, line = -2, cex = 0.9)
   title(xlab = expression(paste(theta, ' in promoters')), line = 2.5)
@@ -385,7 +395,10 @@ pdf(file = 'Figure_3b.pdf', width = 5, height = 5)
 
   plot(x = mm[, 2], y = mm[, 5], xlim = c(3, 32), ylim = c(0, 0.3),
         xlab = '', ylab = '', col = cols, pch = 16)
+  points(x = mm2[, 2], y = mm2[, 5], pch = 21, col = 1)
   c <- cor.test(mm[, 2], mm[, 5], method = 'spearman', exact = F)
+  c2 <- cor.test(mm2[, 2], mm2[, 5], method = 'spearman', exact = F)
+  print(paste('glucose: rho =', round(c2$estimate, digits = 3), 'p =', signif(c2$p.value, digits = 2)))
   mtext(text = paste0('rho = ', round(c$estimate, digits = 3)), side = 3, line = -1, cex = 0.9)
   mtext(text = paste0('p = ', signif(c$p.value, digits = 2)), side = 3, line = -2, cex = 0.9)
   title(xlab = 'Total number of segregating variants', line = 2.5)

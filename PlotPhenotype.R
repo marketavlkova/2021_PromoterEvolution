@@ -255,7 +255,7 @@ names(offset.n) <- offnames
 
 ##################################################
 ############### CORRELATION PLOTS ################
-########### FIGURE 3 AND SUPP FIGURE 2 ###########
+############ FIGURE 2 AND ED FIGURE 3 ############
 ##################################################
 
 ### calculate madian value and standard deviation in modal population expression
@@ -320,8 +320,8 @@ for (i in 1:length(varT)) {
 ridge <- tibble(cond = factor(cd, levels = co[order(ord)]),
                 varC = vc, Variants = vt, Th = ps, Pi = ai, mode = me)
 
-cat(paste('Producing Figure 3c\n'))
-pdf(file = 'Figure_3c.pdf', width = 9, height = 7)
+cat(paste('Producing Figure 2c\n'))
+pdf(file = 'Figure_2c.pdf', width = 9, height = 7)
   par(las = 1, mar = c(5.1, 3.1, 2.1, 2.1))
 
   ggplot(ridge, aes(x = mode, y = cond, fill = Variants)) +
@@ -366,10 +366,10 @@ cols <- c(rep('red', 3), rep('blue', 3), rep('green', 3),
 cols.leg <- c('red', 'blue', 'green', 'darkviolet', 'darkorange', 'gold', 'saddlebrown', 'pink', 'grey', 'darkgreen')
 names(cols) <- names(prom.th)
 
-### plot Figure 3a (correlation of Theta with stdev
+### plot Figure 2a (correlation of Theta with stdev
 ### in modal expression of seg. variants)
-cat(paste('Producing Figure 3a\n'))
-pdf(file = 'Figure_3a.pdf', width = 5, height = 5)
+cat(paste('Producing Figure 2a\n'))
+pdf(file = 'Figure_2a.pdf', width = 5, height = 5)
   par(las = 1, mar = c(5.1, 4.1, 2.1, 2.1))
 
   plot(x = mm[, 3], y = mm[, 5], xlim = c(0, 0.05), ylim = c(0, 0.3),
@@ -387,10 +387,10 @@ pdf(file = 'Figure_3a.pdf', width = 5, height = 5)
 
 dev.off()
 
-### plot Figure 3b (correlation of total seg. variant number
+### plot Figure 2b (correlation of total seg. variant number
 ### with stdev in modal expression of seg. variants)
-cat(paste('Producing Figure 3b\n'))
-pdf(file = 'Figure_3b.pdf', width = 5, height = 5)
+cat(paste('Producing Figure 2b\n'))
+pdf(file = 'Figure_2b.pdf', width = 5, height = 5)
   par(las = 1, mar = c(5.1, 4.1, 2.1, 2.1))
 
   plot(x = mm[, 2], y = mm[, 5], xlim = c(3, 32), ylim = c(0, 0.3),
@@ -408,10 +408,10 @@ pdf(file = 'Figure_3b.pdf', width = 5, height = 5)
 
 dev.off()
 
-### plot Supplementary Figure 2a (correlation of Pi
+### plot Extended Data Figure 3a (correlation of Pi
 ### with stdev in modal expression of seg. variants)
-cat(paste('Producing Figure 2a\n'))
-pdf(file = 'SupplementaryFigure_2a.pdf', width = 5, height = 5)
+cat(paste('Producing Extended Data Figure 3a\n'))
+pdf(file = 'ED_Figure_3a.pdf', width = 5, height = 5)
   par(las = 1, mar = c(5.1, 4.1, 2.1, 2.1))
 
   plot(x = mm[, 4], y = mm[, 5], xlim = c(0, 0.06), ylim = c(0, 0.3),
@@ -426,10 +426,10 @@ pdf(file = 'SupplementaryFigure_2a.pdf', width = 5, height = 5)
 
 dev.off()
 
-### plot Supplementary Figure 2b (correlation of number of cloned seg. variants
+### plot Extended Data Figure 3b (correlation of number of cloned seg. variants
 ### with stdev in modal expression of seg. variants)
-cat(paste('Producing Figure 2b\n'))
-pdf(file = 'SupplementaryFigure_2b.pdf', width = 5, height = 5)
+cat(paste('Producing Extended Data Figure 3b\n'))
+pdf(file = 'ED_Figure_3b.pdf', width = 5, height = 5)
   par(las = 1, mar = c(5.1, 4.1, 2.1, 2.1))
 
   plot(x = mm[, 1], y = mm[, 5], xlim = c(3, 25), ylim = c(0, 0.3),
@@ -446,16 +446,16 @@ dev.off()
 
 ##################################################
 ################# MAPPING PLOTS ##################
-#################### FIGURE 4 ####################
+#################### FIGURE 3 ####################
 ##################################################
 
-### plot upper part of Figure 4a (mapping the effect of random SNPs
+### plot upper part of Figure 3a (mapping the effect of random SNPs
 ### relative to MG1655 variant to position within promoter sequence)
 ### and calculate differences caused by the SNPs in aceB promoter
 ### (save into the 'comp' variable)
-cat(paste('Producing Figure 4a.1\n'))
+cat(paste('Producing Figure 3a.1\n'))
 comp <- list()
-pdf(file = 'Figure_4a.1.pdf', width = 15, height = 7)
+pdf(file = 'Figure_3a.1.pdf', width = 15, height = 7)
   par(mfcol = c(3, 5),
       las = 1)
 
@@ -484,7 +484,7 @@ pdf(file = 'Figure_4a.1.pdf', width = 15, height = 7)
       pl <- as.numeric(mut.ls[[a]][, 3][which(as.numeric(mut.ls[[a]][, 2]) == 1)])
       mg <- as.numeric(mut.ls[[a]][length(mut.ls[[a]][, 3]), 3])
       ### in the case of aceB promoter calculate differences in
-      ### modal expression relative to MG1655 variant for Figure 4b
+      ### modal expression relative to MG1655 variant for Figure 3b
       if (grepl('AceB', a)) {
         comp[[a]] <- (pl - mg)
       }
@@ -535,10 +535,10 @@ pdf(file = 'Figure_4a.1.pdf', width = 15, height = 7)
 
 dev.off()
 
-### plot upper part of Figure 4b (comparing differences in expression
+### plot upper part of Figure 3b (comparing differences in expression
 ### relative to MG1655 between conditions in aceB promoter)
-cat(paste('Producing Figure 4b.1\n'))
-pdf(file = 'Figure_4b.1.pdf', width = 9, height = 3)
+cat(paste('Producing Figure 3b.1\n'))
+pdf(file = 'Figure_3b.1.pdf', width = 9, height = 3)
   par(mfrow = c(1, 3),
       las = 1)
 
@@ -609,13 +609,13 @@ pdf(file = 'Figure_4b.1.pdf', width = 9, height = 3)
 
 dev.off()
 
-### plot lower part of Figure 4a (mapping the effect of random SNPs
+### plot lower part of Figure 3a (mapping the effect of random SNPs
 ### relative to MG1655 variant to position within promoter sequence)
 ### and calculate differences caused by the SNPs in dctA promoter
 ### (save into the 'comp' variable)
-cat(paste('Producing Figure 4a.2\n'))
+cat(paste('Producing Figure 3a.2\n'))
 comp <- list()
-pdf(file = 'Figure_4a.2.pdf', width = 15, height = 7)
+pdf(file = 'Figure_3a.2.pdf', width = 15, height = 7)
   par(mfcol = c(3, 5),
       las = 1)
 
@@ -644,7 +644,7 @@ pdf(file = 'Figure_4a.2.pdf', width = 15, height = 7)
       pl <- as.numeric(mut.ls[[a]][, 3][which(as.numeric(mut.ls[[a]][, 2]) == 1)])
       mg <- as.numeric(mut.ls[[a]][length(mut.ls[[a]][, 3]), 3])
       ### in the case of dctA promoter calculate differences in
-      ### modal expression relative to MG1655 variant for Figure 4b
+      ### modal expression relative to MG1655 variant for Figure 3b
       if (grepl('DctA', a)) {
         comp[[a]] <- (pl - mg)
       }
@@ -695,10 +695,10 @@ pdf(file = 'Figure_4a.2.pdf', width = 15, height = 7)
 
 dev.off()
 
-### plot lower part of Figure 4b (comparing differences in expression
+### plot lower part of Figure 3b (comparing differences in expression
 ### relative to MG1655 between conditions in dctA promoter)
-cat(paste('Producing Figure 4b.2\n'))
-pdf(file = 'Figure_4b.2.pdf', width = 9, height = 3)
+cat(paste('Producing Figure 3b.2\n'))
+pdf(file = 'Figure_3b.2.pdf', width = 9, height = 3)
   par(mfrow = c(1, 3),
       las = 1)
 
@@ -769,10 +769,10 @@ pdf(file = 'Figure_4b.2.pdf', width = 9, height = 3)
 
 dev.off()
 
-### produce legend for Figure 4a (mapping the effect of random SNPs
+### produce legend for Figure 3a (mapping the effect of random SNPs
 ### relative to MG1655 variant to position within promoter sequence)
-cat(paste('Producing Figure 4a.3\n'))
-pdf(file = 'Figure_4a.3.pdf', width = 15, height = 3)
+cat(paste('Producing Figure 3a.3\n'))
+pdf(file = 'Figure_3a.3.pdf', width = 15, height = 3)
 
   plot(NULL, axes = F, ann = F, xlim = c(0, 1), ylim = c(0, 1))
   legend('top', legend = c('open reading frame', '-35 or -10 element', 'inducer TF', 'repressor TF', 'dual TF', 'repressor srRNA'),
@@ -851,13 +851,13 @@ cat(paste0('The fold-changes in expression due to single SNPs are larger inside 
 
 ##################################################
 ################ VARIATION PLOTS #################
-#################### FIGURE 5 ####################
+#################### FIGURE 4 ####################
 ##################################################
 
-### produce Figure 5 (comparing span of expression values
+### produce Figure 4 (comparing span of expression values
 ### between segregating and random variants)
-cat(paste('Producing Figure 5\n'))
-pdf(file = 'Figure_5.pdf', width = 9, height = 7)
+cat(paste('Producing Figure 4\n'))
+pdf(file = 'Figure_4.pdf', width = 9, height = 7)
   par(mfrow = c(3, 4),
       las = 1)
 
@@ -942,7 +942,7 @@ dev.off()
 
 ##################################################
 ################## PLASTICITY  ###################
-############ FIGURE 6, SUPP FIGURE 3 #############
+############# FIGURE 5, ED FIGURE 4 ##############
 ##################################################
 
 ### save all modal expression values for aceB promoter
@@ -971,10 +971,10 @@ for (i in 1:3) {
 ### set values for ylim and xlim in plotting
 lims <- c(2, 5)
 
-### produce Figure 6a (comparing expression values of aceB
+### produce Figure 5a (comparing expression values of aceB
 ### promoter between pyruvic and L-malic acid)
-cat(paste('Producing Figure 6a\n'))
-pdf(file = "Figure_6a.pdf", width = 5, height = 5)
+cat(paste('Producing Figure 5a\n'))
+pdf(file = "Figure_5a.pdf", width = 5, height = 5)
   par(las = 1)
 
   plot(mut2, mut3, pch = 16, col = alpha('red', 0.2),
@@ -990,10 +990,10 @@ pdf(file = "Figure_6a.pdf", width = 5, height = 5)
 
 dev.off()
 
-### produce Figure 6b (comparing expression values of aceB
+### produce Figure 5b (comparing expression values of aceB
 ### promoter among all three environments -> 3D)
-cat(paste('Producing Figure 6b\n'))
-pdf(file = "Figure_6b.pdf", width = 5, height = 5)
+cat(paste('Producing Figure 5b\n'))
+pdf(file = "Figure_5b.pdf", width = 5, height = 5)
   par(las = 1)
 
   source(paste0(root.path, '/addgrids3d.r'))
@@ -1015,10 +1015,10 @@ pdf(file = "Figure_6b.pdf", width = 5, height = 5)
 
 dev.off()
 
-### produce Figure 6c (comparing plasticity in 3D
+### produce Figure 5c (comparing plasticity in 3D
 ### of all promoters between seg. and random variants)
-cat(paste('Producing Figure 6c\n'))
-pdf(file = "Figure_6c.pdf", width = 9, height = 5)
+cat(paste('Producing Figure 5c\n'))
+pdf(file = "Figure_5c.pdf", width = 9, height = 5)
   par(las = 1)
 
   ### define points in 3D on an isospline to use when
@@ -1131,10 +1131,10 @@ for (i in 1:3) {
   }
 }
 
-### produce Figure 6d (comparing expression values of dctA
+### produce Figure 5d (comparing expression values of dctA
 ### promoter between pyruvic and L-malic acid)
-cat(paste('Producing Figure 6d\n'))
-pdf(file = "Figure_6d.pdf", width = 5, height = 5)
+cat(paste('Producing Figure 5d\n'))
+pdf(file = "Figure_5d.pdf", width = 5, height = 5)
   par(las = 1)
 
   plot(mut2, mut3, pch = 16, col = alpha('red', 0.2),
@@ -1155,10 +1155,10 @@ dev.off()
 x1 <- rep(2, 2)
 x2 <- rep(5, 2)
 
-### produce Figure 6e (comparing plasticity in 2D
+### produce Figure 5e (comparing plasticity in 2D
 ### of dctA promoter between seg. and random variants)
-cat(paste('Producing Figure 6e\n'))
-pdf(file = "Figure_6e.pdf", width = 5, height = 5)
+cat(paste('Producing Figure 5e\n'))
+pdf(file = "Figure_5e.pdf", width = 5, height = 5)
   par(las = 1)
 
   ### loop through each random variant and calculate
@@ -1247,10 +1247,10 @@ pdf(file = "Figure_6e.pdf", width = 5, height = 5)
 
 dev.off()
 
-### produce Supplementary Figure 3 (comparing expression values
+### produce Extended Data Figure 4 (comparing expression values
 ### of all promoters between all pairs of conditions)
-cat(paste('Producing Supplementary Figure 3\n'))
-pdf(file = "SupplementaryFigure_3.pdf", width = 12, height = 12)
+cat(paste('Producing Extended Data Figure 4\n'))
+pdf(file = 'ED_Figure_4.pdf', width = 12, height = 12)
   par(mfrow = c(5, 6),
       las = 1,
       par(mar = c(4, 3.5, 2, 0.5)))
@@ -1302,7 +1302,7 @@ dev.off()
 
 ##################################################
 ################# MEAN-CV PLOTS ##################
-############ SUPP FIGURE 4 & FIGURE 7 ############
+############# ED FIGURE 5 & FIGURE 6 #############
 ##################################################
 
 ### define colors for ploting and variable 'noi'
@@ -1310,10 +1310,10 @@ dev.off()
 cols <- c('red', 'blue', 'gold')
 noi <- list()
 
-### produce Supplementary Figure 4 (fitting smooth spline
+### produce Extended Data Figure 5 (fitting smooth spline
 ### to coefficient of variation and modal expression data)
-cat(paste('Producing Supplementary Figure 4\n'))
-pdf(file = 'SupplementaryFigure_4.pdf', width = 9, height = 7)
+cat(paste('Producing Extended Data Figure 5\n'))
+pdf(file = 'ED_Figure_5.pdf', width = 9, height = 7)
   par(mfrow = c(3, 4),
       las = 1)
 
@@ -1428,10 +1428,10 @@ pdf(file = 'SupplementaryFigure_4.pdf', width = 9, height = 7)
 
 dev.off()
 
-### produce Figure 7a (comparing noise
+### produce Figure 6a (comparing noise
 ### between seg. and random variants)
-cat(paste('Producing Figure 7a\n'))
-pdf(file = "Figure_7a.pdf", width = 9, height = 7)
+cat(paste('Producing Figure 6a\n'))
+pdf(file = "Figure_6a.pdf", width = 9, height = 7)
   par(mfrow = c(3, 4),
       las = 1)
 
@@ -1514,10 +1514,10 @@ pdf(file = "Figure_7a.pdf", width = 9, height = 7)
 
 dev.off()
 
-### produce Figure 7b (comparing noise levels
+### produce Figure 6b (comparing noise levels
 ### in aceB between seg. and random variants)
-cat(paste('Producing Figure 7b\n'))
-pdf(file = "Figure_7b.pdf", width = 5, height = 5)
+cat(paste('Producing Figure 6b\n'))
+pdf(file = "Figure_6b.pdf", width = 5, height = 5)
   par(las = 1)
 
   pr <- 'AceB'
@@ -1565,10 +1565,10 @@ pdf(file = "Figure_7b.pdf", width = 5, height = 5)
 
 dev.off()
 
-### produce Figure 7c (comparing noise levels
+### produce Figure 6c (comparing noise levels
 ### in purA between seg. and random variants)
-cat(paste('Producing Figure 7c\n'))
-pdf(file = "Figure_7c.pdf", width = 5, height = 5)
+cat(paste('Producing Figure 6c\n'))
+pdf(file = "Figure_6c.pdf", width = 5, height = 5)
   par(las = 1)
 
   pr <- 'PurA'
@@ -1618,7 +1618,7 @@ dev.off()
 
 ##################################################
 ################### Z-SCORES #####################
-################# SUPP FIGURE 5 ##################
+################## ED FIGURE 6 ###################
 ##################################################
 
 ### define points in 3D on an isospline to use when
@@ -1626,10 +1626,10 @@ dev.off()
 x1 <- rep(2, 3)
 x2 <- rep(5, 3)
 
-### produce Supplementary Figure 5 (comparing summed
+### produce Extended Data Figure 6 (comparing summed
 ### z-scores between seg. and random variants)
-cat(paste('Producing Supplementary Figure 5\n'))
-pdf(file = 'SupplementaryFigure_5.pdf', width = 9, height = 5)
+cat(paste('Producing Extended Data Figure 6\n'))
+pdf(file = 'ED_Figure_6.pdf', width = 9, height = 5)
 par(fig = c(0, 1, 0, 1),
     las = 1)
 
@@ -1916,12 +1916,12 @@ dev.off()
 
 ##################################################
 ################## CELL GATING ###################
-################# SUPP FIGURE 6 ##################
+################## ED FIGURE 7 ###################
 ##################################################
 
-### produce Supplementary Figure 6 (gating example)
-cat(paste('Producing Supplementary Figure 6\n'))
-pdf(file = "SupplementaryFigure_6.pdf", width = 12, height = 3)
+### produce Extended Data Figure 7 (gating example)
+cat(paste('Producing Extended Data Figure 7\n'))
+pdf(file = "ED_Figure_7.pdf", width = 12, height = 3)
   par(las = 1, xpd = NA,
       mar = c(4, 4, 2, 1),
       mfrow = c(1, 4))
